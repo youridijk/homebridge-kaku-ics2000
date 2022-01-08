@@ -6,10 +6,32 @@
     "type": "object",
     "properties": {
       "name": {
-        "title": "Name",
+        "title": "The name you want to give your ICS-2000",
+        "type": "string",
+        "required": true,
+        "default": "ICS-2000"
+      },
+      "email": {
+        "title": "The email of your Klik Aan Klik Uit account",
+        "type": "string",
+        "required": true,
+        "default": "johndoe@email.com"
+      },
+      "password": {
+        "title": "The password of your Klik Aan Klik Uit account",
         "type": "string",
         "required": true,
         "default": "Example Dynamic Platform"
+      },
+      "deviceBlacklist": {
+        "title": "A list of device ids you do not want to appear in HomeKit",
+        "type": "array",
+        "required": false
+      },
+      "localBackupAddress": {
+        "title": "The ip address of your ICS-2000 in case it can't be automatically found in the network",
+        "type": "string",
+        "required": false
       }
     }
   }

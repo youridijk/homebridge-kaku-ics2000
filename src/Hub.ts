@@ -11,11 +11,22 @@ export class Hub {
   public devices: object[] = [];
   private localAddress?: string;
 
+  /**
+   * Creates a Hub for easy communication with the ics-2000
+   * @param email Your e-mail of your KAKU account
+   * @param password Your password of your KAKU account
+   * @param deviceBlacklist A list of device ID's you don't want to appear in HomeKit
+   * @param localBackupAddress Optionally, you can pass the ip address of your ics-2000
+   * in case it can't be automatically found in the network
+   */
   constructor(
     private readonly email: string,
     private readonly password: string,
     private readonly deviceBlacklist: number[] = [],
-  ) {}
+    private readonly localBackupAddress?: string,
+  ) {
+    this.localAddress = localBackupAddress;
+  }
 
   /**
    * Login on the KAKU server and fetch the AES key and ics-2000 mac address stored on you account
@@ -134,7 +145,7 @@ export class Hub {
 
       const timeout = setTimeout(() => {
         client.close();
-        reject('Searching hub timed out');
+        reject('Searching hub timed out! Using backup address for communication');
       }, searchTimeout);
 
       client.on('message', (msg, peer) => {
@@ -175,7 +186,6 @@ export class Hub {
     }
 
     const command = this.createCommand(deviceId, onFunction, on ? 1 : 0);
-    // console.log(command.totalMessage.toString('hex'));
     return command.sendTo(this.localAddress!, 2012);
   }
 
@@ -201,7 +211,8 @@ export class Hub {
   /**
    * Get the current status of a device
    * @param deviceId The id of the device you want to get the status of
-   * @returns A list of numbers that represents the current status of the device. index 0 is on/off status, index 4 is current dim level
+   * @returns A list of numbers that represents the current status of the device.
+   * index 0 is on/off status, index 4 is current dim level
    */
   public async getDeviceStatus(deviceId: number): Promise<number[]> {
     if (!this.aesKey || !this.hubMac) {
@@ -239,11 +250,11 @@ export class Hub {
 
 
       // Functions array is stored with different keys for groups and devices (modules)
-      if('module' in jsonStatus){
+      if ('module' in jsonStatus) {
         return jsonStatus['module']['functions'];
-      }else if('group' in jsonStatus){
+      } else if ('group' in jsonStatus) {
         return jsonStatus['group']['functions'];
-      }else{
+      } else {
         throw new Error('Module or group data not found');
       }
     } else {

@@ -26,8 +26,18 @@ export class KAKUPlatform implements DynamicPlatformPlugin {
 
     const deviceBlacklist: number[] = config.deviceBlacklist ?? [];
 
+    if(deviceBlacklist.length > 0){
+      this.logger.debug(`Blacklist contains ${deviceBlacklist.length} devices: ${deviceBlacklist}`);
+    }
+
+    const {localBackupAddress} = config;
+
+    if(localBackupAddress){
+      this.logger.debug(`Using ${localBackupAddress!} as backup ip`);
+    }
+
     // Create a new Hub that's used in all accessories
-    this.hub = new Hub(email, password, deviceBlacklist);
+    this.hub = new Hub(email, password, deviceBlacklist, localBackupAddress);
 
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
     // Dynamic Platform plugins should only register new accessories after this event was fired,
@@ -37,7 +47,7 @@ export class KAKUPlatform implements DynamicPlatformPlugin {
       this.setup();
       this.createReloadSwitch();
 
-      // Rerun the setup every day so that the devices listed in HomeKit are up-to-date, the AES ket for the command is up-to-date and
+      // Rerun the setup every day so that the devices listed in HomeKit are up-to-date, the AES key for the command is up-to-date and
       // The local ip-address of your ics-2000 is up-to-date
       schedule.scheduleJob('0 0 * * *', () => {
         this.logger.info('Rerunning setup as scheduled');
