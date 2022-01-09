@@ -1,16 +1,15 @@
 {
-  "private": true,
-  "displayName": "Plugin Name",
+  "displayName": "Homebridge KAKU ICS-2000",
   "name": "homebridge-kaku-ics2000",
   "version": "1.0.0",
-  "description": "A short description about what your plugin does.",
+  "description": "A plugin that adds support for Klik Aan Klik Uit accessories connected to the ICS-2000 to HomeKit",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git://github.com/USERNAME/GITHUB_PROJECT_NAME.git"
+    "url": "git://github.com/youridijk/homebridge-kaku-ics2000.git"
   },
   "bugs": {
-    "url": "https://github.com/USERNAME/GITHUB_PROJECT_NAME/issues"
+    "url": "https://github.com/youridijk/homebridge-kaku-ics2000/issues"
   },
   "engines": {
     "node": ">=14.18.1",
@@ -25,7 +24,10 @@
     "test": "npm run build && node src/test.js"
   },
   "keywords": [
-    "homebridge-plugin"
+    "homebridge-plugin",
+    "kaku",
+    "klikaanklikuit",
+    "ics2000"
   ],
   "devDependencies": {
     "@types/node": "^16.10.9",
