@@ -1,7 +1,7 @@
 import {API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic} from 'homebridge';
 import {Hub} from './Hub';
 import {LightBulb} from './LightBulb';
-import {PLATFORM_NAME, PLUGIN_NAME, reloadSwitchName} from './settings';
+import {PLATFORM_NAME, PLUGIN_NAME, RELOAD_SWITCH_NAME} from './settings';
 import {DimmableLightBulb} from './DimmableLightBulb';
 import {ReloadSwitch} from './ReloadSwitch';
 import schedule from 'node-schedule';
@@ -93,7 +93,8 @@ export class KAKUPlatform implements DynamicPlatformPlugin {
   private async discoverDevices() {
     // Search hub and pull devices from the server
     this.logger.info('Searching hub');
-    this.logger.info(`Found hub: ${await this.hub.discoverHubLocal()}`);
+    const hubIp = await this.hub.discoverHubLocal(10_000, this.logger);
+    this.logger.info(`Found hub: ${hubIp}`);
     this.logger.info('Pulling devices from server');
     const foundDevices = await this.hub.pullDevices();
     this.logger.info(`Found ${foundDevices.length} devices`);
@@ -126,13 +127,13 @@ export class KAKUPlatform implements DynamicPlatformPlugin {
    * @private
    */
   private createReloadSwitch(){
-    const uuid = this.api.hap.uuid.generate(reloadSwitchName);
+    const uuid = this.api.hap.uuid.generate(RELOAD_SWITCH_NAME);
     const existingAccessory = this.cachedAccessories.find(accessory => accessory.UUID === uuid);
 
     if (existingAccessory) {
       new ReloadSwitch(this, existingAccessory);
     } else {
-      const reloadSwitchAccessory = new this.api.platformAccessory(reloadSwitchName, uuid);
+      const reloadSwitchAccessory = new this.api.platformAccessory(RELOAD_SWITCH_NAME, uuid);
       new ReloadSwitch(this, reloadSwitchAccessory);
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [reloadSwitchAccessory]);
     }

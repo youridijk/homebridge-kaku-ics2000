@@ -3,6 +3,7 @@ import {URLSearchParams} from 'url';
 import {Cryptographer} from './Cryptographer';
 import dgram from 'dgram';
 import {Command} from './Command';
+import {Logger} from 'homebridge';
 
 export class Hub {
   private readonly baseUrl = 'https://trustsmartcloud2.com/ics2000_api';
@@ -134,8 +135,9 @@ export class Hub {
   /**
    * Searh in you local network for the ics-2000. The ics-2000 listens to a broadcast message, so that's the way we find it out
    * @param searchTimeout The amount of milliseconds you want to wait for an answer on the sent message, before the promise is rejected
+   * @param logger The logger you want to use to warn if search timed out and backup IP is specified
    */
-  public async discoverHubLocal(searchTimeout = 10_000) {
+  public async discoverHubLocal(searchTimeout = 10_000, logger?: Logger) {
     return new Promise<string>((resolve, reject) => {
       const message = Buffer.from(
         '010003ffffffffffffca000000010400044795000401040004000400040000000000000000020000003000',
@@ -145,7 +147,14 @@ export class Hub {
 
       const timeout = setTimeout(() => {
         client.close();
-        reject('Searching hub timed out! Using backup address for communication');
+        if(this.localBackupAddress){
+          if(logger) {
+            logger.warn('Searching hub timed out! Using backup address for communication');
+          }
+          resolve(this.localBackupAddress!);
+        }else {
+          reject('Searching hub timed out and no backup IP-address specified!');
+        }
       }, searchTimeout);
 
       client.on('message', (msg, peer) => {
