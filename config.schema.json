@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "ExampleHomebridgePlugin",
+  "pluginAlias": "KAKU-ICS2000",
   "pluginType": "platform",
   "singular": true,
   "schema": {
@@ -15,13 +15,13 @@
         "title": "The email of your Klik Aan Klik Uit account",
         "type": "string",
         "required": true,
-        "default": "johndoe@email.com"
+        "default": ""
       },
       "password": {
         "title": "The password of your Klik Aan Klik Uit account",
         "type": "string",
         "required": true,
-        "default": "Example Dynamic Platform"
+        "default": ""
       },
       "deviceBlacklist": {
         "title": "A list of device ids you do not want to appear in HomeKit",
