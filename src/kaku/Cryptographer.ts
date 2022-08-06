@@ -1,7 +1,7 @@
 import {Buffer} from 'buffer';
 import crypto from 'crypto';
 
-export class Cryptographer {
+export default class Cryptographer {
   /**
    * Encrypt a string data with AES 128 CBC with a 16-bit IV of only zeros and a given key. Returns the data in a HEX string
    * @param data The data you want to encrypt

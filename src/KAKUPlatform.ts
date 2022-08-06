@@ -1,16 +1,17 @@
 import {API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic} from 'homebridge';
-import {Hub} from './Hub';
-import {LightBulb} from './LightBulb';
+import Hub from './kaku/Hub';
+import LightBulb from './LightBulb';
 import {PLATFORM_NAME, PLUGIN_NAME, RELOAD_SWITCH_NAME} from './settings';
-import {DimmableLightBulb} from './DimmableLightBulb';
-import {ReloadSwitch} from './ReloadSwitch';
+import DimmableLightBulb from './DimmableLightBulb';
+import ReloadSwitch from './ReloadSwitch';
 import schedule from 'node-schedule';
 
-export class KAKUPlatform implements DynamicPlatformPlugin {
+export default class KAKUPlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
   public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
   private readonly cachedAccessories: PlatformAccessory[] = [];
   public readonly hub: Hub;
+  private registeredDeviceIds: number[] = [];
 
   constructor(
     public readonly logger: Logger,
@@ -43,25 +44,28 @@ export class KAKUPlatform implements DynamicPlatformPlugin {
     // Dynamic Platform plugins should only register new accessories after this event was fired,
     // in order to ensure they weren't added to homebridge already. This event can also be used
     // to start discovery of new accessories.
-    this.api.on('didFinishLaunching', () => {
-      this.setup();
+    this.api.on('didFinishLaunching', async () => {
+      await this.setup();
       this.createReloadSwitch();
-
       // Rerun the setup every day so that the devices listed in HomeKit are up-to-date, the AES key for the command is up-to-date and
       // The local ip-address of your ics-2000 is up-to-date
-      schedule.scheduleJob('0 0 * * *', () => {
-        this.logger.info('Rerunning setup as scheduled');
-        this.setup();
+      schedule.scheduleJob('0 0 * * *', async () => {
+        this.logger.info('Pulling AES-key from server and searching for ics2000 as scheduled');
+        // this.setup();
+        await this.hub.discoverHubLocal(10_000, logger);
+        await this.hub.login();
       });
     });
   }
 
-  public setup() {
+  public async setup() {
     this.logger.info('Setup called!');
-    this.hub.login()
-      .catch(error => this.logger.error(`Error logging in: ${error}`))
-      .then(() => this.discoverDevices())
+    await this.hub.login()
+      .catch(error => this.logger.error(`Error logging in: ${error}`));
+    await this.discoverDevices()
       .catch((error) => this.logger.error(`Error discovering devices: ${error}`));
+    await this.hub.getAllDeviceStatuses()
+      .catch((error) => this.logger.error(`Error fetching device statuses: ${error}`));
   }
 
   configureAccessory(accessory: PlatformAccessory): void {
@@ -85,6 +89,12 @@ export class KAKUPlatform implements DynamicPlatformPlugin {
       case 40: // 40 is a dimmable lightbulb
         new DimmableLightBulb(this, accessory);
         break;
+      case 34: // 34 is dimmable -- Thanks to suuus
+        new DimmableLightBulb(this, accessory);
+        break;
+      case 36: // 36 is a dimmable IKEA/HUE light -- Thanks to suuus
+        new DimmableLightBulb(this, accessory);
+        break;
       default:
         new LightBulb(this, accessory);
     }
@@ -100,6 +110,12 @@ export class KAKUPlatform implements DynamicPlatformPlugin {
     this.logger.info(`Found ${foundDevices.length} devices`);
 
     for (const device of foundDevices) {
+      if(this.registeredDeviceIds.includes(device['id'])){
+        continue;
+      }else{
+        this.registeredDeviceIds.push(device['id']);
+      }
+
       const uuid = this.api.hap.uuid.generate(device['id']);
       const existingAccessory = this.cachedAccessories.find(accessory => accessory.UUID === uuid);
 

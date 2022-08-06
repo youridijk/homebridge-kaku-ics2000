@@ -1,14 +1,14 @@
-import {KAKUPlatform} from './KAKUPlatform';
+import KAKUPlatform from './KAKUPlatform';
 import {PlatformAccessory, Service} from 'homebridge';
 
-export class ReloadSwitch {
+export default class ReloadSwitch {
   private readonly service: Service;
 
   constructor(
     private readonly platform: KAKUPlatform,
     private readonly accessory: PlatformAccessory,
   ) {
-    this.service = this.accessory.getService(this.platform.Service.Lightbulb) || this.accessory.addService(this.platform.Service.Lightbulb);
+    this.service = this.accessory.getService(this.platform.Service['Switch']) || this.accessory.addService(this.platform.Service.Switch);
 
     this.service.getCharacteristic(this.platform.Characteristic.On)
       .onGet(this.getState.bind(this))

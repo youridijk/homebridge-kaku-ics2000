@@ -1,13 +1,13 @@
-import {LightBulb} from './LightBulb';
-import {KAKUPlatform} from './KAKUPlatform';
+import LightBulb from './LightBulb';
+import KAKUPlatform from './KAKUPlatform';
 import {CharacteristicValue, HAPStatus, PlatformAccessory} from 'homebridge';
 
-export class DimmableLightBulb extends LightBulb {
+export default class DimmableLightBulb extends LightBulb {
   constructor(
     platform: KAKUPlatform,
     accessory: PlatformAccessory,
   ) {
-    super(platform, accessory);
+    super(platform, accessory, 'Lightbulb');
 
     // The Function for turning a dimmable lightbulb on or off is 3
     this.onOffCharacteristicFunction = 3;
@@ -25,7 +25,7 @@ export class DimmableLightBulb extends LightBulb {
   private async getBrightness() {
     try {
       const status = (await this.hub.getDeviceStatus(this.deviceId))[4];
-      this.logger.debug(`Current brighness for ${this.deviceName}: ${status}`);
+      this.logger.debug(`Current brightness for ${this.deviceName}: ${status}`);
       return status;
     } catch (e) {
       this.logger.error(`Error getting brightness for ${this.deviceName}: ${e}`);

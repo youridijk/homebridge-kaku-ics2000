@@ -1,8 +1,8 @@
 import {Buffer} from 'buffer';
-import {Cryptographer} from './Cryptographer';
+import Cryptographer from './Cryptographer';
 import dgram from 'dgram';
 
-export class Command {
+export default class Command {
   public readonly totalMessage: Buffer;
   private readonly client = dgram.createSocket('udp4');
 

@@ -1,16 +1,17 @@
 import fetch from 'node-fetch';
 import {URLSearchParams} from 'url';
-import {Cryptographer} from './Cryptographer';
+import Cryptographer from './Cryptographer';
 import dgram from 'dgram';
-import {Command} from './Command';
+import Command from './Command';
 import {Logger} from 'homebridge';
 
-export class Hub {
+export default class Hub {
   private readonly baseUrl = 'https://trustsmartcloud2.com/ics2000_api';
   private aesKey?: string;
   private hubMac?: string;
   public devices: object[] = [];
   private localAddress?: string;
+  public readonly deviceStatuses: Map<number, number[]> = new Map<number, number[]>();
 
   /**
    * Creates a Hub for easy communication with the ics-2000
@@ -217,6 +218,53 @@ export class Hub {
     return command.sendTo(this.localAddress!, 2012);
   }
 
+  public async getAllDeviceStatuses(){
+    const deviceIds: number[] = this.devices.map(device => Number(device['id']));
+    const idsString = `[${deviceIds}]`;
+
+    const params = new URLSearchParams({
+      'action': 'get-multiple',
+      'email': this.email,
+      'mac': this.hubMac!,
+      'password_hash': this.password,
+      'home_id': '',
+      'entity_id': idsString,
+    });
+
+    const response = await fetch(`${this.baseUrl}/entity.php`, {
+      method: 'POST',
+      body: params,
+    });
+
+    const responseJson: object[] = await response.json();
+
+    if (responseJson.length === 0 || response.status !== 200) {
+      throw new Error(`Unknown error while fetching device statuses, json: ${responseJson}`);
+    }
+
+    for(const device of responseJson) {
+      // console.log(device)
+      const status = Cryptographer.decryptBase64(device['status'], this.aesKey!);
+      const jsonStatus = JSON.parse(status);
+
+      // Functions array is stored with different keys for groups and devices (modules)
+      if ('module' in jsonStatus) {
+        this.deviceStatuses.set(device['id'], jsonStatus['module']['functions']);
+      } else if ('group' in jsonStatus) {
+        this.deviceStatuses.set(device['id'], jsonStatus['group']['functions']);
+      } else {
+        throw new Error('Module or group data not found');
+      }
+    }
+  }
+
+  private updateDate: Date = new Date();
+  private updating = false;
+
+  public async sleep(milliseconds: number){
+    return new Promise((resolve) => setTimeout(resolve, milliseconds));
+  }
+
   /**
    * Get the current status of a device
    * @param deviceId The id of the device you want to get the status of
@@ -224,6 +272,33 @@ export class Hub {
    * index 0 is on/off status, index 4 is current dim level
    */
   public async getDeviceStatus(deviceId: number): Promise<number[]> {
+    const currentDate = new Date();
+    const updateDate = this.updateDate;
+    this.updateDate = new Date();
+
+    const dateDifference = currentDate.getTime() - updateDate.getTime();
+
+    if(dateDifference >= 2000){
+      this.updating = true;
+      await this.getAllDeviceStatuses();
+      this.updating = false;
+    }
+
+    // Wait till the new data is fetched
+    while (this.updating){
+      await this.sleep(100);
+    }
+
+    return this.deviceStatuses.get(deviceId)!;
+  }
+
+  /**
+   * Get the current status of a device, directly from the server
+   * @param deviceId The id of the device you want to get the status of
+   * @returns A list of numbers that represents the current status of the device.
+   * index 0 is on/off status, index 4 is current dim level
+   */
+  public async getDeviceStatusFromServer(deviceId: number): Promise<number[]> {
     if (!this.aesKey || !this.hubMac) {
       throw new Error('Hub mac address or aes key undefined');
     }
