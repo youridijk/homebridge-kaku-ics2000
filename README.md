@@ -33,6 +33,6 @@ An example config.json with these 2 keys:
 }
 ```
 
-##ICS2000-Python
+## ICS2000-Python
 A big thanks to Stijn-Jacobs for his research on controlling the ICS-2000. This plugin is created using his research, 
 so checkout [ICS2000-Python](https://github.com/Stijn-Jacobs/ICS2000-Python) on GitHub.
