@@ -10,6 +10,7 @@ export default class LightBulb {
   protected readonly deviceData: Record<string, never>;
   protected readonly deviceId: number;
   protected readonly deviceName: string;
+  protected readonly isGroup: boolean;
   protected readonly hub: Hub;
   protected readonly logger: Logger;
 
@@ -24,6 +25,8 @@ export default class LightBulb {
     this.deviceData = accessory.context.device;
     this.deviceName = accessory.context.name;
     this.deviceId = Number(this.deviceData.id);
+    this.isGroup = this.deviceData.isGroup;
+
     this.hub = platform.hub;
     this.logger = platform.logger;
     this.logger.debug(`${this.deviceName} ${this.accessoryType}`);
@@ -49,7 +52,7 @@ export default class LightBulb {
       // The is necessary, otherwise dimming a light doesn't work because HomeKit sends an on command and a dim command at the same time
       // And the ics-2000 can't handle multiple messages received at the same time
       if (newState !== currentState) {
-        await this.hub.turnDeviceOnOff(this.deviceId, newValue as boolean, this.onOffCharacteristicFunction);
+        await this.hub.turnDeviceOnOff(this.deviceId, newValue as boolean, this.onOffCharacteristicFunction, this.isGroup);
         this.platform.logger.debug(`Changed state to ${newValue} on ${this.deviceName}`);
       }
     } catch (e) {

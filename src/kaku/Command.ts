@@ -13,6 +13,9 @@ export default class Command {
    * @param deviceFunction The function you want to call for the specified device
    * @param value The value for the specified function
    * @param aesKey The AES-key what you want to encrypt the message with, this key is stored on your KAKU account
+   * @param isGroup A boolean which indicates whether the device is a group of other devices or not
+   * @param deviceFunctions The list of the functions / status list (list of integers which represent the current state),
+   * only needed if device is a group
    */
   constructor(
     private readonly hubMac: string,
@@ -20,14 +23,26 @@ export default class Command {
     private readonly deviceFunction: number,
     private readonly value: number,
     private readonly aesKey: string,
+    private readonly isGroup: boolean,
+    private deviceFunctions: number[] = [],
   ) {
-    const dataObject = {
-      module: {
-        id: deviceId,
-        function: deviceFunction,
-        value: value,
-      },
+    const dataObject = {};
+
+    dataObject[isGroup ? 'group' : 'module'] = {
+      id: deviceId,
+      function: deviceFunction,
+      value: value,
     };
+
+    // This extra data is not required, but it is if you want the status of the devices to be updated correctly
+    // + with this extra data, all the members of the group are updated as well
+    // It's possible to just send a command like you would for a regular device, but the status will be wrong
+    // (you turned a device on but homekit says it's off)
+    if (isGroup) {
+      dataObject['group']['update_group_members'] = true;
+      deviceFunctions[deviceFunction] = value;
+      dataObject['group']['functions'] = deviceFunctions;
+    }
 
     const encryptedData = Cryptographer.encrypt(JSON.stringify(dataObject), aesKey);
     const data = Buffer.from(encryptedData, 'hex');
@@ -74,5 +89,9 @@ export default class Command {
       }));
     });
 
+  }
+
+  public toHex(): string {
+    return this.totalMessage.toString('hex');
   }
 }

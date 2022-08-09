@@ -103,6 +103,8 @@ export default class Hub {
           return false;
         }
 
+        // console.log( device['data']['module']['device']);
+        device['isGroup'] = 'group' in data;
         // Check if entry is a device or a group
         if ('module' in data && 'info' in data['module'] && data['module']['device'] !== 26) {
           // In my case, there are some devices in this list that are deleted and not shown in the app
@@ -125,6 +127,7 @@ export default class Hub {
         device['status'] = JSON.parse(decryptedStatus);
         device['name'] = device['data']['module']['name'];
         device['device'] = device['data']['module']['device'];
+        device['test'] = 1;
       });
 
       return this.devices;
@@ -179,9 +182,16 @@ export default class Hub {
    * @param deviceId The id of the device you want to run a function on
    * @param deviceFunction The function you want to run on the device
    * @param value The value for the function
+   * @param isGroup A boolean which indicates whether the device is a group of other devices or not
    */
-  public createCommand(deviceId: number, deviceFunction: number, value: number): Command {
-    return new Command(this.hubMac!, deviceId, deviceFunction, value, this.aesKey!);
+  public createCommand(deviceId: number, deviceFunction: number, value: number, isGroup: boolean): Command {
+    let deviceFunctions: number[] = [];
+
+    if(isGroup){
+      deviceFunctions = this.deviceStatuses.get(deviceId)!;
+    }
+
+    return new Command(this.hubMac!, deviceId, deviceFunction, value, this.aesKey!, isGroup, deviceFunctions);
   }
 
   /**
@@ -189,13 +199,14 @@ export default class Hub {
    * @param deviceId The id of the device you want to turn on or off
    * @param on Whether you want to turn the device on or off
    * @param onFunction The function used to turn the device on or off
+   * @param isGroup A boolean which indicates whether the device is a group of other devices or not
    */
-  public turnDeviceOnOff(deviceId: number, on: boolean, onFunction = 0) {
+  public turnDeviceOnOff(deviceId: number, on: boolean, onFunction: number, isGroup: boolean) {
     if (!this.localAddress) {
       throw new Error('Local address is undefined');
     }
 
-    const command = this.createCommand(deviceId, onFunction, on ? 1 : 0);
+    const command = this.createCommand(deviceId, onFunction, on ? 1 : 0, isGroup);
     return command.sendTo(this.localAddress!, 2012);
   }
 
@@ -204,8 +215,9 @@ export default class Hub {
    * @param deviceId The id of the device tou want tot dim
    * @param dimFunction The function you want to use to dim the device
    * @param dimLevel The new dim value (0 = off, 255 = 100% brightness)
+   * @param isGroup A boolean which indicates whether the device is a group of other devices or not
    */
-  public dimDevice(deviceId: number, dimFunction = 4, dimLevel) {
+  public dimDevice(deviceId: number, dimFunction, dimLevel, isGroup: boolean) {
     if (!this.localAddress) {
       throw new Error('Local address is undefined');
     }
@@ -214,7 +226,7 @@ export default class Hub {
       throw new Error(`Dim level ${dimLevel} is negative or greater than 255`);
     }
 
-    const command = this.createCommand(deviceId, dimFunction, dimLevel);
+    const command = this.createCommand(deviceId, dimFunction, dimLevel, isGroup);
     return command.sendTo(this.localAddress!, 2012);
   }
 
@@ -289,7 +301,8 @@ export default class Hub {
       await this.sleep(100);
     }
 
-    return this.deviceStatuses.get(deviceId)!;
+    // return this.deviceStatuses.get(deviceId)!;
+    return this.getDeviceStatusFromServer(deviceId);
   }
 
   /**

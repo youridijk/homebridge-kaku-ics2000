@@ -36,7 +36,7 @@ export default class DimmableLightBulb extends LightBulb {
   private async changeBrightness(newValue: CharacteristicValue) {
     try {
       this.logger.debug(`Brightness changed: ${newValue}`);
-      await this.hub.dimDevice(this.deviceId, 4, newValue as number);
+      await this.hub.dimDevice(this.deviceId, 4, newValue as number, this.isGroup);
     } catch (e) {
       this.logger.error(`Error changing brightness for ${this.deviceName}: ${e}`);
       throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);

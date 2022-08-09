@@ -109,29 +109,29 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
     const foundDevices = await this.hub.pullDevices();
     this.logger.info(`Found ${foundDevices.length} devices`);
 
-    for (const device of foundDevices) {
-      if(this.registeredDeviceIds.includes(device['id'])){
+    for (const deviceData of foundDevices) {
+      if(this.registeredDeviceIds.includes(deviceData['id'])){
         continue;
       }else{
-        this.registeredDeviceIds.push(device['id']);
+        this.registeredDeviceIds.push(deviceData['id']);
       }
 
-      const uuid = this.api.hap.uuid.generate(device['id']);
+      const uuid = this.api.hap.uuid.generate(deviceData['id']);
       const existingAccessory = this.cachedAccessories.find(accessory => accessory.UUID === uuid);
 
       // Create the accessory
       if (existingAccessory) {
-        this.createDevice(existingAccessory, device['device']);
-        this.logger.info(`Loaded device from cache: ${existingAccessory.context.name}: ${device['device']}`);
+        this.createDevice(existingAccessory, deviceData['device']);
+        this.logger.info(`Loaded device from cache: ${existingAccessory.context.name}: ${deviceData['device']}`);
       } else {
-        const deviceName = device['name'];
+        const deviceName = deviceData['name'];
         const accessory = new this.api.platformAccessory(deviceName, uuid);
 
         // store a copy of the device object in the `accessory.context`
-        accessory.context.device = device;
+        accessory.context.device = deviceData;
         accessory.context.name = deviceName;
 
-        this.createDevice(accessory, device['device']);
+        this.createDevice(accessory, deviceData['device']);
         this.logger.info(`Loaded new device: ${deviceName}`);
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       }
