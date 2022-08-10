@@ -12,13 +12,13 @@ In every message that's sent, the MAC-address is put into the message.
 
 ## Fetching the key and the MAC-address of your ICS-2000
 
-Fetching the AES-key (along with some other account details that are not relevant) are fetched as followed:
+The AES-key (along with some other account details that are not relevant) are fetched as followed:
 
 ```http request
 POST https://trustsmartcloud2.com/ics2000_api/account.php?action=login&email=your_kaku_login_email&password_hash=your_kaku_password_plain_text&device_unique_id=android&platform=&mac=
 ```
 
-The parameters in the url are as followed (you don't need to do any:
+The parameters in the url are as followed (you don't need to do anything with this):
 
 ```json 
 {
