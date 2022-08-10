@@ -4,6 +4,7 @@ import Cryptographer from './Cryptographer';
 import dgram from 'dgram';
 import Command from './Command';
 import {Logger} from 'homebridge';
+import fs from 'fs';
 
 export default class Hub {
   private readonly baseUrl = 'https://trustsmartcloud2.com/ics2000_api';
@@ -64,11 +65,7 @@ export default class Hub {
     }
   }
 
-  /**
-   * Pulls the list of devices connected to your ics-2000 from the serer
-   * Stores the list of devices in this class and returns it
-   */
-  public async pullDevices() {
+  public async getRawDevicesData(decryptData: boolean, decryptStatus: boolean) {
     if (!this.aesKey || !this.hubMac) {
       throw new Error('Hub mac address or aes key undefined');
     }
@@ -86,54 +83,85 @@ export default class Hub {
       body: params,
     });
 
-    const responseJson: object[] = await response.json();
+    const devicesData = await response.json();
 
     if (response.ok) {
-      // Decrypt the data for every object in the data (scenes, rooms, groups and devices are all in this list)
-      responseJson.map(device => {
-        const decryptedData = Cryptographer.decryptBase64(device['data'], this.aesKey!);
-        device['data'] = JSON.parse(decryptedData);
-      });
+      if (decryptData || decryptStatus) {
+        // Decrypt the data for every object in the data (scenes, rooms, groups and devices are all in this list)
+        devicesData.map(device => {
+          if (decryptData) {
+            const decryptedData = Cryptographer.decryptBase64(device['data'], this.aesKey!);
+            device['data'] = JSON.parse(decryptedData);
+          }
 
-      this.devices = responseJson.filter(device => {
-        const deviceId = Number(device['id']);
-        const data = device['data'];
+          // eslint-disable-next-line eqeqeq
+          if (decryptStatus && device['status'] != null) {
+            const decryptedStatus = Cryptographer.decryptBase64(device['status'], this.aesKey!);
+            device['status'] = JSON.parse(decryptedStatus);
+          }
+        });
+      }
 
-        if (this.deviceBlacklist.includes(deviceId)) {
-          return false;
-        }
-
-        // console.log( device['data']['module']['device']);
-        device['isGroup'] = 'group' in data;
-        // Check if entry is a device or a group
-        if ('module' in data && 'info' in data['module'] && data['module']['device'] !== 26) {
-          // In my case, there are some devices in this list that are deleted and not shown in the app
-          // So we need to filter this out
-          // The sum of all values in the info array is always greater than 0 if device exist
-          const functionSum = data['module']['info'].reduce((a, b) => a + b, 0);
-          return functionSum > 0;
-        } else if ('group' in data) {
-          // change group key name to module so a group is treated as a device
-          device['data']['module'] = device['data']['group'];
-          delete device['data']['group'];
-          return true;
-        }
-
-        return false;
-      });
-
-      this.devices.map(device => {
-        const decryptedStatus = Cryptographer.decryptBase64(device['status'], this.aesKey!);
-        device['status'] = JSON.parse(decryptedStatus);
-        device['name'] = device['data']['module']['name'];
-        device['device'] = device['data']['module']['device'];
-        device['test'] = 1;
-      });
-
-      return this.devices;
+      return devicesData;
     } else {
-      throw new Error(responseJson[0].toString());
+      throw new Error(devicesData[0].toString());
     }
+  }
+
+  public async generateDevicesJSON(decryptData: boolean, decryptStatus: boolean) {
+    if (!this.aesKey || !this.hubMac) {
+      // console.log('MAC or AES key is null, so logging in!');
+      await this.login();
+    }
+
+    const devices = await this.getRawDevicesData(decryptData, decryptStatus);
+    fs.writeFileSync('devices.json', JSON.stringify(devices, null, 2));
+  }
+
+  /**
+   * Pulls the list of devices connected to your ics-2000 from the serer
+   * Stores the list of devices in this class and returns it
+   */
+  public async pullDevices() {
+    // Status will later be decrypted, because fewer data needs to be decrypted
+    const devicesData: object[] = await this.getRawDevicesData(true, false);
+
+    this.devices = devicesData.filter(device => {
+      const deviceId = Number(device['id']);
+      const data = device['data'];
+
+      if (this.deviceBlacklist.includes(deviceId)) {
+        return false;
+      }
+
+      // console.log( device['data']['module']['device']);
+      device['isGroup'] = 'group' in data;
+      // Check if entry is a device or a group
+      if ('module' in data && 'info' in data['module'] && data['module']['device'] !== 26) {
+        // In my case, there are some devices in this list that are deleted and not shown in the app
+        // So we need to filter this out
+        // The sum of all values in the info array is always greater than 0 if device exist
+        const functionSum = data['module']['info'].reduce((a, b) => a + b, 0);
+        return functionSum > 0;
+      } else if ('group' in data) {
+        // change group key name to module so a group is treated as a device
+        device['data']['module'] = device['data']['group'];
+        delete device['data']['group'];
+        return true;
+      }
+
+      return false;
+    });
+
+    this.devices.map(device => {
+      const decryptedStatus = Cryptographer.decryptBase64(device['status'], this.aesKey!);
+      device['status'] = JSON.parse(decryptedStatus);
+      device['name'] = device['data']['module']['name'];
+      device['device'] = device['data']['module']['device'];
+      device['test'] = 1;
+    });
+
+    return this.devices;
   }
 
   /**
@@ -151,12 +179,12 @@ export default class Hub {
 
       const timeout = setTimeout(() => {
         client.close();
-        if(this.localBackupAddress){
-          if(logger) {
+        if (this.localBackupAddress) {
+          if (logger) {
             logger.warn('Searching hub timed out! Using backup address for communication');
           }
           resolve(this.localBackupAddress!);
-        }else {
+        } else {
           reject('Searching hub timed out and no backup IP-address specified!');
         }
       }, searchTimeout);
@@ -187,7 +215,7 @@ export default class Hub {
   public createCommand(deviceId: number, deviceFunction: number, value: number, isGroup: boolean): Command {
     let deviceFunctions: number[] = [];
 
-    if(isGroup){
+    if (isGroup) {
       deviceFunctions = this.deviceStatuses.get(deviceId)!;
     }
 
@@ -230,7 +258,7 @@ export default class Hub {
     return command.sendTo(this.localAddress!, 2012);
   }
 
-  public async getAllDeviceStatuses(){
+  public async getAllDeviceStatuses() {
     const deviceIds: number[] = this.devices.map(device => Number(device['id']));
     const idsString = `[${deviceIds}]`;
 
@@ -254,7 +282,7 @@ export default class Hub {
       throw new Error(`Unknown error while fetching device statuses, json: ${responseJson}`);
     }
 
-    for(const device of responseJson) {
+    for (const device of responseJson) {
       // console.log(device)
       const status = Cryptographer.decryptBase64(device['status'], this.aesKey!);
       const jsonStatus = JSON.parse(status);
@@ -273,7 +301,7 @@ export default class Hub {
   private updateDate: Date = new Date();
   private updating = false;
 
-  public async sleep(milliseconds: number){
+  public async sleep(milliseconds: number) {
     return new Promise((resolve) => setTimeout(resolve, milliseconds));
   }
 
@@ -290,14 +318,14 @@ export default class Hub {
 
     const dateDifference = currentDate.getTime() - updateDate.getTime();
 
-    if(dateDifference >= 2000){
+    if (dateDifference >= 2000) {
       this.updating = true;
       await this.getAllDeviceStatuses();
       this.updating = false;
     }
 
     // Wait till the new data is fetched
-    while (this.updating){
+    while (this.updating) {
       await this.sleep(100);
     }
 
@@ -359,3 +387,5 @@ export default class Hub {
     }
   }
 }
+
+module.exports = Hub;

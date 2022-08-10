@@ -3,7 +3,7 @@ import crypto from 'crypto';
 
 export default class Cryptographer {
   /**
-   * Encrypt a string data with AES 128 CBC with a 16-bit IV of only zeros and a given key. Returns the data in a HEX string
+   * Encrypt a string data with AES 128 CBC with a 16-bit IV of random bytes and a given key. Returns the data in a HEX string
    * @param data The data you want to encrypt
    * @param aesKey The used for the encryption
    */
@@ -21,7 +21,7 @@ export default class Cryptographer {
    * @param aesKey The key used for decryption
    */
   static decryptHex(encodedData: string, aesKey: string) {
-    // First 16 bytes of a hex string returned by the ics-2000 opr the server is the IV
+    // First 16 bytes of a hex string returned by the ics-2000 or the server is the IV
     const iv = Buffer.from(encodedData.substring(0, 32), 'hex');
     const data = encodedData.substring(32);
     const cipher = crypto.createDecipheriv('aes-128-cbc', Buffer.from(aesKey, 'hex'), iv);
