@@ -65,6 +65,33 @@ export default class Hub {
     }
   }
 
+  /**
+   * Method used in map functions to decrypt a list of data from the clud
+   * @param data The data where data and status needs to be decrypted
+   * @param decryptData  A boolean which indicates whether you want to decrypt the data or not
+   * @param decryptStatus A boolean which indicates whether you want to decrypt the status or not
+   * @private
+   */
+  private formatDeviceData(data: object, decryptData: boolean, decryptStatus: boolean) {
+    if (decryptData) {
+      const decryptedData = Cryptographer.decryptBase64(data['data'], this.aesKey!);
+      data['data'] = JSON.parse(decryptedData);
+    }
+
+    // eslint-disable-next-line eqeqeq
+    if (decryptStatus && data['status'] != null) {
+      const decryptedStatus = Cryptographer.decryptBase64(data['status'], this.aesKey!);
+      data['status'] = JSON.parse(decryptedStatus);
+    }
+
+    return data;
+  }
+
+  /**
+   * Fetches the list of devices, rooms, etc., from the KAKU cloud and decrypts the status and data
+   * @param decryptData A boolean which indicates whether you want to decrypt the data or not
+   * @param decryptStatus A boolean which indicates whether you want to decrypt the status or not
+   */
   public async getRawDevicesData(decryptData: boolean, decryptStatus: boolean) {
     if (!this.aesKey || !this.hubMac) {
       throw new Error('Hub mac address or aes key undefined');
@@ -88,18 +115,7 @@ export default class Hub {
     if (response.ok) {
       if (decryptData || decryptStatus) {
         // Decrypt the data for every object in the data (scenes, rooms, groups and devices are all in this list)
-        devicesData.map(device => {
-          if (decryptData) {
-            const decryptedData = Cryptographer.decryptBase64(device['data'], this.aesKey!);
-            device['data'] = JSON.parse(decryptedData);
-          }
-
-          // eslint-disable-next-line eqeqeq
-          if (decryptStatus && device['status'] != null) {
-            const decryptedStatus = Cryptographer.decryptBase64(device['status'], this.aesKey!);
-            device['status'] = JSON.parse(decryptedStatus);
-          }
-        });
+        devicesData.map(d => this.formatDeviceData(d, decryptData, decryptStatus));
       }
 
       return devicesData;
@@ -108,15 +124,46 @@ export default class Hub {
     }
   }
 
-  public async generateDevicesJSON(decryptData: boolean, decryptStatus: boolean) {
-    if (!this.aesKey || !this.hubMac) {
-      // console.log('MAC or AES key is null, so logging in!');
-      await this.login();
+  public async getRawDeviceStatuses(decryptData: boolean, decryptStatus: boolean){
+    const deviceIds: number[] = this.devices.map(device => Number(device['id']));
+    const idsString = `[${deviceIds}]`;
+
+    const params = new URLSearchParams({
+      'action': 'get-multiple',
+      'email': this.email,
+      'mac': this.hubMac!,
+      'password_hash': this.password,
+      'home_id': '',
+      'entity_id': idsString,
+    });
+
+    const response = await fetch(`${this.baseUrl}/entity.php`, {
+      method: 'POST',
+      body: params,
+    });
+
+    const statusList: object[] = await response.json();
+
+    if (statusList.length === 0 || response.status !== 200) {
+      throw new Error(`Unknown error while fetching device statuses, json: ${statusList}`);
     }
 
-    const devices = await this.getRawDevicesData(decryptData, decryptStatus);
-    fs.writeFileSync('devices.json', JSON.stringify(devices, null, 2));
+    // return statusList.map(device => {
+    //   if (decryptData) {
+    //     const decryptedData = Cryptographer.decryptBase64(device['data'], this.aesKey!);
+    //     device['data'] = JSON.parse(decryptedData);
+    //   }
+    //
+    //   // eslint-disable-next-line eqeqeq
+    //   if (decryptStatus && device['status'] != null) {
+    //     const decryptedStatus = Cryptographer.decryptBase64(device['status'], this.aesKey!);
+    //     device['status'] = JSON.parse(decryptedStatus);
+    //   }
+    // });
+
+    return statusList.map(d => this.formatDeviceData(d, decryptData, decryptStatus));
   }
+
 
   /**
    * Pulls the list of devices connected to your ics-2000 from the serer
@@ -259,33 +306,13 @@ export default class Hub {
   }
 
   public async getAllDeviceStatuses() {
-    const deviceIds: number[] = this.devices.map(device => Number(device['id']));
-    const idsString = `[${deviceIds}]`;
+    const statusList = await this.getRawDeviceStatuses(false, true);
 
-    const params = new URLSearchParams({
-      'action': 'get-multiple',
-      'email': this.email,
-      'mac': this.hubMac!,
-      'password_hash': this.password,
-      'home_id': '',
-      'entity_id': idsString,
-    });
-
-    const response = await fetch(`${this.baseUrl}/entity.php`, {
-      method: 'POST',
-      body: params,
-    });
-
-    const responseJson: object[] = await response.json();
-
-    if (responseJson.length === 0 || response.status !== 200) {
-      throw new Error(`Unknown error while fetching device statuses, json: ${responseJson}`);
-    }
-
-    for (const device of responseJson) {
+    for (const device of statusList) {
       // console.log(device)
-      const status = Cryptographer.decryptBase64(device['status'], this.aesKey!);
-      const jsonStatus = JSON.parse(status);
+      // const status = Cryptographer.decryptBase64(device['status'], this.aesKey!);
+      // const jsonStatus = JSON.parse(status);
+      const jsonStatus = device['status'];
 
       // Functions array is stored with different keys for groups and devices (modules)
       if ('module' in jsonStatus) {
@@ -329,8 +356,8 @@ export default class Hub {
       await this.sleep(100);
     }
 
-    // return this.deviceStatuses.get(deviceId)!;
-    return this.getDeviceStatusFromServer(deviceId);
+    return this.deviceStatuses.get(deviceId)!;
+    // return this.getDeviceStatusFromServer(deviceId);
   }
 
   /**
@@ -385,6 +412,37 @@ export default class Hub {
     } else {
       throw new Error(responseJson[0].toString());
     }
+  }
+
+  /**
+   * A method to write the list of devices, rooms, etc. to a JSON file called 'devices.json'
+   * @param decryptData A boolean which indicates whether you want to decrypt the data or not
+   * @param decryptStatus A boolean which indicates whether you want to decrypt the status or not
+   */
+  public async generateDevicesJSON(decryptData: boolean, decryptStatus: boolean) {
+    if (!this.aesKey || !this.hubMac) {
+      // console.log('MAC or AES key is null, so logging in!');
+      await this.login();
+    }
+
+    const devices = await this.getRawDevicesData(decryptData, decryptStatus);
+    fs.writeFileSync('devices.json', JSON.stringify(devices, null, 2));
+  }
+
+  /**
+   * A method to write the list of statuses of all devices to a JSON file called 'statuses.json'
+   * @param decryptData A boolean which indicates whether you want to decrypt the data or not
+   * @param decryptStatus A boolean which indicates whether you want to decrypt the status or not
+   */
+  public async generateDeviceStatusesJSON(decryptData: boolean, decryptStatus: boolean) {
+    if (!this.aesKey || !this.hubMac) {
+      // console.log('MAC or AES key is null, so logging in!');
+      await this.login();
+      await this.pullDevices();
+    }
+
+    const devices = await this.getRawDeviceStatuses(decryptData, decryptStatus);
+    fs.writeFileSync('statuses.json', JSON.stringify(devices, null, 2));
   }
 }
 
