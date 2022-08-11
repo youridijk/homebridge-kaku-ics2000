@@ -49,3 +49,5 @@ Fill in your e-mail and password in the url above, and you get the following JSO
     "cameras": ["Array of your cameras"]
 }
 ```
+
+## Discovering the Hub (ICS-2000)
