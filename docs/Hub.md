@@ -15,7 +15,7 @@ In every message that's sent, the MAC-address is put into the message.
 The AES-key (along with some other account details that are not relevant) are fetched as followed:
 
 ```http request
-POST https://trustsmartcloud2.com/ics2000_api/account.php?action=login&email=your_kaku_login_email&password_hash=your_kaku_password_plain_text&device_unique_id=android&platform=&mac=
+POST /account.php?action=login&email=your_kaku_login_email&password_hash=your_kaku_password_plain_text&device_unique_id=android&platform=&mac=
 ```
 
 The parameters in the url are as followed (you don't need to do anything with this):
@@ -51,3 +51,16 @@ Fill in your e-mail and password in the url above, and you get the following JSO
 ```
 
 ## Discovering the Hub (ICS-2000)
+Discovering the ICS-2000 is done using a UDP broadcast message. 
+You need to send the following message to IP-address `255.255.255.255` and port `2012` using a UDP-socket with broadcast
+option enabled:
+
+NOTE: I don't know what this message means, but I found the message using [Wireshark](https://www.wireshark.org)
+
+```hex
+010003ffffffffffffca000000010400044795000401040004000400040000000000000000020000003000
+```
+
+The ICS-2000 reacts to this message with a new message. I don't know what this message means, but it's not important
+for the discovery of the ICS-2000, because we only need the IP-address of the ICS-2000. Because the ICS-2000 sends
+a message back, we know the IP-address of the sender of the message: the ICS-2000.

@@ -7,7 +7,7 @@ of KAKU, along with the current status of all devices. To fetch this list, you n
 see [Hub](Hub.md)). The list is being fetched as followed:
 
 ```http request
-POST https://trustsmartcloud2.com/ics2000_api/gateway.php?action=sync&email=your_kaku_login_email&password_hash=your_kaku_password_plain_text&mac=your-ICS-2000-MAC-address&home_id=
+POST /gateway.php?action=sync&email=your_kaku_login_email&password_hash=your_kaku_password_plain_text&mac=your-ICS-2000-MAC-address&home_id=
 ```
 
 The parameters in the url are as followed (you don't need to do anything with this):
@@ -142,7 +142,7 @@ the KAKU app. This status is automatically updated if you change the status usin
 ICS-2000 or through a physical remote. The statuses are being fetched as followed:
 
 ```http request
-POST https://trustsmartcloud2.com/ics2000_api/entity.php?action=get-multiple&email=your_kaku_login_email&password_hash=your_kaku_password_plain_text&mac=your-ICS-2000-MAC-address&home_id=&entity_id=array_of_entity_ids
+POST /entity.php?action=get-multiple&email=your_kaku_login_email&password_hash=your_kaku_password_plain_text&mac=your-ICS-2000-MAC-address&home_id=&entity_id=array_of_entity_ids
 ```
 
 The parameters in the url are as followed (you don't need to do anything with this):
@@ -162,7 +162,7 @@ The list of entity IDs needs to be an array of integers (each integer is an enti
 
 For example: `"[1244,1244576,23324]"`
 
-In the url it will look like this: `https://url.com/entity.php?entity_id=[1244,1244576,23324]`
+In the url it will look like this: `/entity.php?entity_id=[1244,1244576,23324]`
 
 Fill in your e-mail, password, ICS-2000 MAC and the list of entity IDs in the url above, and you get the list returned.
 A device in the list looks as followed:
@@ -278,7 +278,7 @@ The name is always `"P1 Module"`, so you can find it using the name.
 Now we have the entity id, we can retrieve this data as follows:
 
 ```http request
-POST https://trustsmartcloud2.com/ics2000_api/entity.php?action=check&email=your_kaku_login_email&password_hash=your_kaku_password_plain_text&mac=your-ICS-2000-MAC-address&entity_id=id_of_your_p1_meter
+POST /entity.php?action=check&email=your_kaku_login_email&password_hash=your_kaku_password_plain_text&mac=your-ICS-2000-MAC-address&entity_id=id_of_your_p1_meter
 ```
 
 The parameters in the url are as followed (you don't need to do anything with this):
