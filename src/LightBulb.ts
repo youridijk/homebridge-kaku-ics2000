@@ -1,13 +1,14 @@
 import {CharacteristicValue, HAPStatus, Logger, PlatformAccessory, Service} from 'homebridge';
 import Hub from './kaku/Hub';
 import KAKUPlatform from './KAKUPlatform';
+import Device from './kaku/Device';
 
 /**
  * This class is a simple KAKU or other zigbee lightbulb / switch connected to your ics 2000. This lightbulb can only turn of and on
  */
 export default class LightBulb {
   protected service: Service;
-  protected readonly deviceData: Record<string, never>;
+  protected readonly device: Device;
   protected readonly deviceId: number;
   protected readonly deviceName: string;
   protected readonly isGroup: boolean;
@@ -22,10 +23,10 @@ export default class LightBulb {
     protected readonly accessory: PlatformAccessory,
     protected readonly accessoryType: string = 'Switch',
   ) {
-    this.deviceData = accessory.context.device;
+    this.device = accessory.context.device;
     this.deviceName = accessory.context.name;
-    this.deviceId = Number(this.deviceData.id);
-    this.isGroup = this.deviceData.isGroup;
+    this.deviceId = this.device.entityId;
+    this.isGroup = this.device.isGroup;
 
     this.hub = platform.hub;
     this.logger = platform.logger;
@@ -46,13 +47,13 @@ export default class LightBulb {
     try {
       const newState = newValue as boolean;
       const currentState = this.service.getCharacteristic(this.platform.Characteristic.On).value;
-      this.logger.debug('Current state is ' + currentState);
 
       // Only send a command to the ics-2000 if the state is changed
       // The is necessary, otherwise dimming a light doesn't work because HomeKit sends an on command and a dim command at the same time
       // And the ics-2000 can't handle multiple messages received at the same time
       if (newState !== currentState) {
-        await this.hub.turnDeviceOnOff(this.deviceId, newValue as boolean, this.onOffCharacteristicFunction, this.isGroup);
+        // await this.hub.turnDeviceOnOff(this.deviceId, newValue as boolean, this.onOffCharacteristicFunction, this.isGroup, true);
+        await this.device.turnOnOff(newValue as boolean, true);
         this.platform.logger.debug(`Changed state to ${newValue} on ${this.deviceName}`);
       }
     } catch (e) {
@@ -64,12 +65,13 @@ export default class LightBulb {
   public async getOn() {
     try {
       // Get status for this device
-      const statusList = await this.hub.getDeviceStatus(this.deviceId);
-      this.logger.debug(`${this.deviceName} stat ${statusList}`);
-      const status = statusList[this.onOffCharacteristicFunction];
+      // const statusList = await this.hub.getDeviceStatus(this.deviceId);
+      // this.logger.debug(`${this.deviceName} stat ${statusList}`);
+      // const status = statusList[this.onOffCharacteristicFunction];
       // this.platform.logger.debug(`Current state for ${this.deviceName}: ${status}`);
+      return this.device.getOnStatus();
 
-      return status === 1;
+      // return status === 1;
     } catch (e) {
       this.platform.logger.error(`Error getting state for ${this.deviceName}: ${e}`);
       throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);

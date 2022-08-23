@@ -4,13 +4,19 @@ import Cryptographer from './Cryptographer';
 import dgram from 'dgram';
 import Command from './Command';
 import {Logger} from 'homebridge';
-import fs from 'fs';
+import * as fs from 'fs';
+import Device from './Device';
+import DimDevice from './DimDevice';
+import DeviceData from './DeviceData';
 
+/**
+ * A class that represents the ICS-2000 hub
+ */
 export default class Hub {
-  private readonly baseUrl = 'https://trustsmartcloud2.com/ics2000_api';
+  public static readonly baseUrl = 'https://trustsmartcloud2.com/ics2000_api';
   private aesKey?: string;
   private hubMac?: string;
-  public devices: object[] = [];
+  public devices: Device[] = [];
   private localAddress?: string;
   public readonly deviceStatuses: Map<number, number[]> = new Map<number, number[]>();
 
@@ -44,7 +50,7 @@ export default class Hub {
       mac: '',
     });
 
-    const request = await fetch(`${this.baseUrl}/account.php`, {
+    const request = await fetch(`${Hub.baseUrl}/account.php`, {
       method: 'POST',
       body: params,
     });
@@ -54,7 +60,6 @@ export default class Hub {
     }
 
     const responseJson = await request.json();
-
 
     if (request.ok && responseJson['homes'].length > 0) {
       const home = responseJson['homes'][0];
@@ -66,7 +71,7 @@ export default class Hub {
   }
 
   /**
-   * Method used in map functions to decrypt a list of data from the clud
+   * Method used in map functions to decrypt a list of data from the cloud
    * @param data The data where data and status needs to be decrypted
    * @param decryptData  A boolean which indicates whether you want to decrypt the data or not
    * @param decryptStatus A boolean which indicates whether you want to decrypt the status or not
@@ -105,12 +110,13 @@ export default class Hub {
       home_id: '',
     });
 
-    const response = await fetch(`${this.baseUrl}/gateway.php`, {
+    const response = await fetch(`${Hub.baseUrl}/gateway.php`, {
       method: 'POST',
       body: params,
     });
 
     const devicesData = await response.json();
+    // console.log(devicesData);
 
     if (response.ok) {
       if (decryptData || decryptStatus) {
@@ -124,8 +130,8 @@ export default class Hub {
     }
   }
 
-  public async getRawDeviceStatuses(decryptData: boolean, decryptStatus: boolean){
-    const deviceIds: number[] = this.devices.map(device => Number(device['id']));
+  public async getRawDeviceStatuses(decryptData: boolean, decryptStatus: boolean) {
+    const deviceIds: number[] = this.devices.map(device => Number(device.entityId));
     const idsString = `[${deviceIds}]`;
 
     const params = new URLSearchParams({
@@ -137,11 +143,15 @@ export default class Hub {
       'entity_id': idsString,
     });
 
-    const response = await fetch(`${this.baseUrl}/entity.php`, {
+
+    const response = await fetch(`${Hub.baseUrl}/entity.php`, {
       method: 'POST',
       body: params,
     });
 
+    // const devicesJSON = responseJson.filter(device => {
+    //   const deviceId = Number(device['id']);
+    //   const data = device['data'];
     const statusList: object[] = await response.json();
 
     if (statusList.length === 0 || response.status !== 200) {
@@ -173,7 +183,10 @@ export default class Hub {
     // Status will later be decrypted, because fewer data needs to be decrypted
     const devicesData: object[] = await this.getRawDevicesData(true, false);
 
-    this.devices = devicesData.filter(device => {
+    const hubCopy = Object.assign({}, this);
+    hubCopy.devices = [];
+
+    const devices = devicesData.filter(device => {
       const deviceId = Number(device['id']);
       const data = device['data'];
 
@@ -200,12 +213,21 @@ export default class Hub {
       return false;
     });
 
-    this.devices.map(device => {
-      const decryptedStatus = Cryptographer.decryptBase64(device['status'], this.aesKey!);
-      device['status'] = JSON.parse(decryptedStatus);
+    this.devices = devices.map(device => {
       device['name'] = device['data']['module']['name'];
       device['device'] = device['data']['module']['device'];
-      device['test'] = 1;
+      const deviceType = device['device'];
+
+
+      switch (deviceType) {
+        case 48: // 48 is dimmable group
+        case 40: // 40 is a dimmable lightbulb
+        case 34: // 34 is dimmable -- Thanks to suuus
+        case 36: // 36 is a dimmable IKEA/HUE light -- Thanks to suuus
+          return new DimDevice(this, device as DeviceData);
+        default:
+          return new Device(this, device as DeviceData);
+      }
     });
 
     return this.devices;
@@ -243,9 +265,7 @@ export default class Hub {
         resolve(peer.address);
       });
 
-      client.bind(() => {
-        client.setBroadcast(true);
-      });
+      client.bind(() => client.setBroadcast(true));
 
       client.send(message, 2012, '255.255.255.255');
     });
@@ -275,14 +295,27 @@ export default class Hub {
    * @param on Whether you want to turn the device on or off
    * @param onFunction The function used to turn the device on or off
    * @param isGroup A boolean which indicates whether the device is a group of other devices or not
+   * @param sendLocal A boolean which indicates whether you want to send the command through KAKU cloud or local using UDP
    */
-  public turnDeviceOnOff(deviceId: number, on: boolean, onFunction: number, isGroup: boolean) {
+  public turnDeviceOnOff(deviceId: number, on: boolean, onFunction: number, isGroup: boolean, sendLocal: boolean) {
     if (!this.localAddress) {
       throw new Error('Local address is undefined');
     }
 
     const command = this.createCommand(deviceId, onFunction, on ? 1 : 0, isGroup);
+    if (sendLocal) {
+      return this.sendCommandToHub(command);
+    } else {
+      return this.sendCommandToCloud(command);
+    }
+  }
+
+  public async sendCommandToHub(command: Command): Promise<void> {
     return command.sendTo(this.localAddress!, 2012);
+  }
+
+  public async sendCommandToCloud(command: Command): Promise<void> {
+    return command.sendToCloud(this.email, this.password);
   }
 
   /**
@@ -291,8 +324,9 @@ export default class Hub {
    * @param dimFunction The function you want to use to dim the device
    * @param dimLevel The new dim value (0 = off, 255 = 100% brightness)
    * @param isGroup A boolean which indicates whether the device is a group of other devices or not
+   * @param sendLocal A boolean which indicates whether you want to send the command through KAKU cloud or local using UDP
    */
-  public dimDevice(deviceId: number, dimFunction, dimLevel, isGroup: boolean) {
+  public dimDevice(deviceId: number, dimFunction, dimLevel, isGroup: boolean, sendLocal: boolean) {
     if (!this.localAddress) {
       throw new Error('Local address is undefined');
     }
@@ -302,7 +336,13 @@ export default class Hub {
     }
 
     const command = this.createCommand(deviceId, dimFunction, dimLevel, isGroup);
-    return command.sendTo(this.localAddress!, 2012);
+
+    if (sendLocal) {
+      return command.sendTo(this.localAddress!, 2012);
+    } else {
+      return this.sendCommandToCloud(command);
+    }
+
   }
 
   public async getAllDeviceStatuses() {
@@ -336,7 +376,7 @@ export default class Hub {
    * Get the current status of a device
    * @param deviceId The id of the device you want to get the status of
    * @returns A list of numbers that represents the current status of the device.
-   * index 0 is on/off status, index 4 is current dim level
+   * index 0 is on/off status for switch, index 3 on/off for zigbee lightbulb, index 4 is current dim level
    */
   public async getDeviceStatus(deviceId: number): Promise<number[]> {
     const currentDate = new Date();
@@ -380,7 +420,7 @@ export default class Hub {
       'entity_id': `[${deviceId}]`,
     });
 
-    const response = await fetch(`${this.baseUrl}/entity.php`, {
+    const response = await fetch(`${Hub.baseUrl}/entity.php`, {
       method: 'POST',
       body: params,
     });

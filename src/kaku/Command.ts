@@ -1,7 +1,13 @@
 import {Buffer} from 'buffer';
 import Cryptographer from './Cryptographer';
 import dgram from 'dgram';
+import {URLSearchParams} from 'url';
+import Hub from './Hub';
+import fetch from 'node-fetch';
 
+/**
+ * This class represents a command sent to the ICS-2000
+ */
 export default class Command {
   public readonly totalMessage: Buffer;
   private readonly client = dgram.createSocket('udp4');
@@ -18,13 +24,13 @@ export default class Command {
    * only needed if device is a group
    */
   constructor(
-    private readonly hubMac: string,
-    private readonly deviceId: number,
-    private readonly deviceFunction: number,
-    private readonly value: number,
-    private readonly aesKey: string,
-    private readonly isGroup: boolean,
-    private deviceFunctions: number[] = [],
+    public readonly hubMac: string,
+    public readonly deviceId: number,
+    public readonly deviceFunction: number,
+    public readonly value: number,
+    public readonly aesKey: string,
+    public readonly isGroup: boolean,
+    public readonly deviceFunctions: number[] = [],
   ) {
     const dataObject = {};
 
@@ -88,10 +94,30 @@ export default class Command {
         }
       }));
     });
+  }
 
+  public async sendToCloud(email: string, password: string): Promise<void> {
+    const params = new URLSearchParams({
+      'action': 'add',
+      'email': email,
+      'mac': this.hubMac!,
+      'password_hash': password,
+      'device_unique_id': '',
+      'command': this.toHex(),
+    });
+
+    const response = await fetch(`${Hub.baseUrl}/command.php`, {
+      body: params,
+    });
+
+    if (response.status !== 200) {
+      throw new Error(`Non 200 status returned: ${response.status}`);
+    }
   }
 
   public toHex(): string {
     return this.totalMessage.toString('hex');
   }
 }
+
+module.exports = Command;

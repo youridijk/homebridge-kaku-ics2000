@@ -80,19 +80,14 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
    * I don't have other types of devices
    * @param accessory The accessory object you want to create a new Device with
    * @param deviceType The device type, this is stored in device json as followed: data->module->device
-   * but also stored as device key in the device object itself (see Hub.ts)
    * @private
    */
   private createDevice(accessory: PlatformAccessory, deviceType: number) {
     switch (deviceType) {
-      case 48: // 48 is dimmable group
-      case 40: // 40 is a dimmable lightbulb
-        new DimmableLightBulb(this, accessory);
-        break;
       case 34: // 34 is dimmable -- Thanks to suuus
-        new DimmableLightBulb(this, accessory);
-        break;
       case 36: // 36 is a dimmable IKEA/HUE light -- Thanks to suuus
+      case 40: // 40 is a dimmable lightbulb
+      case 48: // 48 is dimmable group
         new DimmableLightBulb(this, accessory);
         break;
       default:
@@ -109,29 +104,33 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
     const foundDevices = await this.hub.pullDevices();
     this.logger.info(`Found ${foundDevices.length} devices`);
 
-    for (const deviceData of foundDevices) {
-      if(this.registeredDeviceIds.includes(deviceData['id'])){
+    for (const device of foundDevices) {
+      const entityId = device.entityId;
+      const deviceType = device.deviceType;
+
+      if(this.registeredDeviceIds.includes(entityId)){
         continue;
       }else{
-        this.registeredDeviceIds.push(deviceData['id']);
+        this.registeredDeviceIds.push(entityId);
       }
 
-      const uuid = this.api.hap.uuid.generate(deviceData['id']);
+      const uuid = this.api.hap.uuid.generate(entityId.toString());
       const existingAccessory = this.cachedAccessories.find(accessory => accessory.UUID === uuid);
 
       // Create the accessory
       if (existingAccessory) {
-        this.createDevice(existingAccessory, deviceData['device']);
-        this.logger.info(`Loaded device from cache: ${existingAccessory.context.name}: ${deviceData['device']}`);
+        existingAccessory.context.device = device;
+        this.createDevice(existingAccessory, deviceType);
+        this.logger.info(`Loaded device from cache: ${existingAccessory.context.name}: ${deviceType}`);
       } else {
-        const deviceName = deviceData['name'];
+        const deviceName = device.name;
         const accessory = new this.api.platformAccessory(deviceName, uuid);
 
         // store a copy of the device object in the `accessory.context`
-        accessory.context.device = deviceData;
+        accessory.context.device = device;
         accessory.context.name = deviceName;
 
-        this.createDevice(accessory, deviceData['device']);
+        this.createDevice(accessory, deviceType);
         this.logger.info(`Loaded new device: ${deviceName}`);
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       }

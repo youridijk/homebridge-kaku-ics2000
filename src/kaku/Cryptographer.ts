@@ -1,6 +1,9 @@
 import {Buffer} from 'buffer';
 import crypto from 'crypto';
 
+/**
+ * This class contains all methods used for encryption and decryption
+ */
 export default class Cryptographer {
   /**
    * Encrypt a string data with AES 128 CBC with a 16-bit IV of random bytes and a given key. Returns the data in a HEX string
@@ -38,3 +41,4 @@ export default class Cryptographer {
     return this.decryptHex(Buffer.from(encodedData, 'base64').toString('hex'), aesKey);
   }
 }
+module.exports = Cryptographer;
