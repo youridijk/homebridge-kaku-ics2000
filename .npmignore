@@ -137,3 +137,4 @@ dist
 homebridge-config.json
 .idea
 device-config.json
+docs/

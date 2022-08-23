@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import {URLSearchParams} from 'url';
 import Cryptographer from './Cryptographer';
 import dgram from 'dgram';
@@ -8,12 +7,15 @@ import * as fs from 'fs';
 import Device from './Device';
 import DimDevice from './DimDevice';
 import DeviceData from './DeviceData';
+import axios from 'axios';
+
+// Set base url for all axios requests
+axios.defaults.baseURL = 'https://trustsmartcloud2.com/ics2000_api';
 
 /**
  * A class that represents the ICS-2000 hub
  */
 export default class Hub {
-  public static readonly baseUrl = 'https://trustsmartcloud2.com/ics2000_api';
   private aesKey?: string;
   private hubMac?: string;
   public devices: Device[] = [];
@@ -50,23 +52,22 @@ export default class Hub {
       mac: '',
     });
 
-    const request = await fetch(`${Hub.baseUrl}/account.php`, {
-      method: 'POST',
-      body: params,
-    });
+    const request = await axios.post('/account.php', params.toString())
+      .catch(error => {
+        if (error.response.status === 401) {
+          throw new Error('Username/ password combination incorrect');
+        }
+        throw new Error(error.response.data[0]);
+      });
 
-    if (request.status === 401) {
-      throw new Error('Username/ password combination incorrect');
-    }
+    const responseJson = request.data;
 
-    const responseJson = await request.json();
-
-    if (request.ok && responseJson['homes'].length > 0) {
+    if (responseJson['homes'].length > 0) {
       const home = responseJson['homes'][0];
       this.aesKey = home['aes_key'];
       this.hubMac = home['mac'];
     } else {
-      throw new Error(responseJson[0]);
+      throw new Error(responseJson);
     }
   }
 
@@ -110,24 +111,17 @@ export default class Hub {
       home_id: '',
     });
 
-    const response = await fetch(`${Hub.baseUrl}/gateway.php`, {
-      method: 'POST',
-      body: params,
-    });
+    const response = await axios.post('/gateway.php', params.toString());
 
-    const devicesData = await response.json();
+    const devicesData = await response.data;
     // console.log(devicesData);
 
-    if (response.ok) {
-      if (decryptData || decryptStatus) {
-        // Decrypt the data for every object in the data (scenes, rooms, groups and devices are all in this list)
-        devicesData.map(d => this.formatDeviceData(d, decryptData, decryptStatus));
-      }
-
-      return devicesData;
-    } else {
-      throw new Error(devicesData[0].toString());
+    if (decryptData || decryptStatus) {
+      // Decrypt the data for every object in the data (scenes, rooms, groups and devices are all in this list)
+      devicesData.map(d => this.formatDeviceData(d, decryptData, decryptStatus));
     }
+
+    return devicesData;
   }
 
   public async getRawDeviceStatuses(decryptData: boolean, decryptStatus: boolean) {
@@ -144,17 +138,14 @@ export default class Hub {
     });
 
 
-    const response = await fetch(`${Hub.baseUrl}/entity.php`, {
-      method: 'POST',
-      body: params,
-    });
+    const response = await axios.post('/entity.php', params.toString());
 
     // const devicesJSON = responseJson.filter(device => {
     //   const deviceId = Number(device['id']);
     //   const data = device['data'];
-    const statusList: object[] = await response.json();
+    const statusList: object[] = response.data;
 
-    if (statusList.length === 0 || response.status !== 200) {
+    if (statusList.length === 0) {
       throw new Error(`Unknown error while fetching device statuses, json: ${statusList}`);
     }
 
@@ -420,37 +411,37 @@ export default class Hub {
       'entity_id': `[${deviceId}]`,
     });
 
-    const response = await fetch(`${Hub.baseUrl}/entity.php`, {
-      method: 'POST',
-      body: params,
-    });
+    const response = await axios.post('/entity.php', params.toString())
+      .catch(error => {
+        if (error.response.status === 404) {
+          throw new Error(`Device with id ${deviceId} not found`);
+        } else {
+          throw new Error(error.response.data);
+        }
+      });
 
-    const responseJson: object[] = await response.json();
+    const responseJson: object[] = response.data;
 
-    if (responseJson.length === 0 || response.status === 404) {
+    if (responseJson.length === 0) {
       throw new Error(`Device with id ${deviceId} not found`);
     }
 
-    if (response.ok) {
-      if (!responseJson[0]['status']) {
-        return [0];
-      }
+    if (!responseJson[0]['status']) {
+      return [0];
+    }
 
-      // Get first item of the list and grep the status of it
-      const status = Cryptographer.decryptBase64(responseJson[0]['status'], this.aesKey);
-      const jsonStatus = JSON.parse(status);
+    // Get first item of the list and grep the status of it
+    const status = Cryptographer.decryptBase64(responseJson[0]['status'], this.aesKey);
+    const jsonStatus = JSON.parse(status);
 
 
-      // Functions array is stored with different keys for groups and devices (modules)
-      if ('module' in jsonStatus) {
-        return jsonStatus['module']['functions'];
-      } else if ('group' in jsonStatus) {
-        return jsonStatus['group']['functions'];
-      } else {
-        throw new Error('Module or group data not found');
-      }
+    // Functions array is stored with different keys for groups and devices (modules)
+    if ('module' in jsonStatus) {
+      return jsonStatus['module']['functions'];
+    } else if ('group' in jsonStatus) {
+      return jsonStatus['group']['functions'];
     } else {
-      throw new Error(responseJson[0].toString());
+      throw new Error('Module or group data not found');
     }
   }
 

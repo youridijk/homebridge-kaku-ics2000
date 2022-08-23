@@ -2,8 +2,7 @@ import {Buffer} from 'buffer';
 import Cryptographer from './Cryptographer';
 import dgram from 'dgram';
 import {URLSearchParams} from 'url';
-import Hub from './Hub';
-import fetch from 'node-fetch';
+import axios from 'axios';
 
 /**
  * This class represents a command sent to the ICS-2000
@@ -106,8 +105,8 @@ export default class Command {
       'command': this.toHex(),
     });
 
-    const response = await fetch(`${Hub.baseUrl}/command.php`, {
-      body: params,
+    const response = await axios.get('/command.php', {
+      params: params,
     });
 
     if (response.status !== 200) {
