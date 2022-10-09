@@ -32,6 +32,11 @@
         "title": "The ip address of your ICS-2000 in case it can't be automatically found in the network",
         "type": "string",
         "required": false
+      },
+      "dimmableOverrides": {
+        "title": "A list of entityIDs of devices that must be treated as a dimmable device, whether it is or isn't.",
+        "type": "array",
+        "required": false
       }
     }
   }

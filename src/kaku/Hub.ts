@@ -2,7 +2,6 @@ import {URLSearchParams} from 'url';
 import Cryptographer from './Cryptographer';
 import dgram from 'dgram';
 import Command from './Command';
-import {Logger} from 'homebridge';
 import * as fs from 'fs';
 import Device from './Device';
 import DimDevice from './DimDevice';
@@ -26,15 +25,17 @@ export default class Hub {
    * Creates a Hub for easy communication with the ics-2000
    * @param email Your e-mail of your KAKU account
    * @param password Your password of your KAKU account
-   * @param deviceBlacklist A list of device ID's you don't want to appear in HomeKit
+   * @param deviceBlacklist A list of entityID's you don't want to appear in HomeKit
    * @param localBackupAddress Optionally, you can pass the ip address of your ics-2000
    * in case it can't be automatically found in the network
+   * @param dimmableOverrides A list of entityIDs of devices that must be treated as a dimmable device, whether it is or isn't.
    */
   constructor(
     private readonly email: string,
     private readonly password: string,
     private readonly deviceBlacklist: number[] = [],
     private readonly localBackupAddress?: string,
+    private readonly dimmableOverrides: number[] = [],
   ) {
     this.localAddress = localBackupAddress;
   }
@@ -209,6 +210,9 @@ export default class Hub {
       device['device'] = device['data']['module']['device'];
       const deviceType = device['device'];
 
+      if (this.dimmableOverrides.includes(device['id'])) {
+        return new DimDevice(this, device as DeviceData);
+      }
 
       switch (deviceType) {
         case 48: // 48 is dimmable group
@@ -227,10 +231,9 @@ export default class Hub {
   /**
    * Searh in you local network for the ics-2000. The ics-2000 listens to a broadcast message, so that's the way we find it out
    * @param searchTimeout The amount of milliseconds you want to wait for an answer on the sent message, before the promise is rejected
-   * @param logger The logger you want to use to warn if search timed out and backup IP is specified
    */
-  public async discoverHubLocal(searchTimeout = 10_000, logger?: Logger) {
-    return new Promise<string>((resolve, reject) => {
+  public async discoverHubLocal(searchTimeout = 10_000) {
+    return new Promise<{ address: string; isBackupAddress: boolean }>((resolve, reject) => {
       const message = Buffer.from(
         '010003ffffffffffffca000000010400044795000401040004000400040000000000000000020000003000',
         'hex',
@@ -240,10 +243,7 @@ export default class Hub {
       const timeout = setTimeout(() => {
         client.close();
         if (this.localBackupAddress) {
-          if (logger) {
-            logger.warn('Searching hub timed out! Using backup address for communication');
-          }
-          resolve(this.localBackupAddress!);
+          resolve({address: this.localBackupAddress!, isBackupAddress: true});
         } else {
           reject('Searching hub timed out and no backup IP-address specified!');
         }
@@ -253,7 +253,7 @@ export default class Hub {
         client.close();
         clearTimeout(timeout);
         this.localAddress = peer.address;
-        resolve(peer.address);
+        resolve({address: peer.address, isBackupAddress: false});
       });
 
       client.bind(() => client.setBroadcast(true));

@@ -16,9 +16,10 @@ An example config.json with all required keys:
 }
 ```
 
-In addition, you can pass a `deviceBlacklist` key to specify a list of IDs of devices you don't want to show up in HomeKit.
-Further, you can specify a `localBackupAddress` key to specify the IP-address of your ICS-2000. This IP-address will 
-only be used if this plugin can't find the IP-address of your ICS-2000 automatically.
+In addition, there are a few optional options:
+- `deviceBlacklist` - A list of entityIDs of devices you don't want to show up in HomeKit.
+- `localBackupAddress` - A backup IP-address that will be used if the IP-address of your ICS-2000 can't be found automatically.
+- `dimmableOverrides` - A list of entityIDs of devices that must be treated as a dimmable device, whether it is or isn't.
 
 An example config.json with these 2 keys:
 
