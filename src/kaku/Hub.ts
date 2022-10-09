@@ -219,6 +219,7 @@ export default class Hub {
         case 40: // 40 is a dimmable lightbulb
         case 34: // 34 is dimmable -- Thanks to suuus
         case 36: // 36 is a dimmable IKEA/HUE light -- Thanks to suuus
+        case 2:  // 2 is dimmable
           return new DimDevice(this, device as DeviceData);
         default:
           return new Device(this, device as DeviceData);
