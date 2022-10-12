@@ -215,11 +215,12 @@ export default class Hub {
       }
 
       switch (deviceType) {
-        case 48: // 48 is dimmable group
-        case 40: // 40 is a dimmable lightbulb
-        case 34: // 34 is dimmable -- Thanks to suuus
-        case 36: // 36 is a dimmable IKEA/HUE light -- Thanks to suuus
         case 2:  // 2 is dimmable
+        case 34: // 34 is dimmable -- Thanks to suuus
+        case 33: // 33 zigbee (ledvance) dimmable and cool to warm white adjustable spot.
+        case 36: // 36 is a dimmable IKEA/HUE light and same as 33 -- Thanks to suuus
+        case 40: // 40 is a dimmable lightbulb
+        case 48: // 48 is dimmable group
           return new DimDevice(this, device as DeviceData);
         default:
           return new Device(this, device as DeviceData);
@@ -230,13 +231,13 @@ export default class Hub {
   }
 
   /**
-   * Searh in you local network for the ics-2000. The ics-2000 listens to a broadcast message, so that's the way we find it out
+   * Search in you local network for the ics-2000. The ics-2000 listens to a broadcast message, so that's the way we find it out
    * @param searchTimeout The amount of milliseconds you want to wait for an answer on the sent message, before the promise is rejected
    */
   public async discoverHubLocal(searchTimeout = 10_000) {
     return new Promise<{ address: string; isBackupAddress: boolean }>((resolve, reject) => {
       const message = Buffer.from(
-        '010003ffffffffffffca000000010400044795000401040004000400040000000000000000020000003000',
+        '0x010003ffffffffffffca000000010400044795000401040004000400040000000000000000020000003000',
         'hex',
       );
       const client = dgram.createSocket('udp4');
