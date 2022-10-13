@@ -34,6 +34,11 @@ An example config.json with these 2 keys:
 }
 ```
 
+## Contributing
+At boot, this plugin will show some information for every device that it adds to HomeKit. If you want to help, 
+you can add your device types with a short description of the device (e.g. Zigbee dimmer, KAKU smart plug) and optionally a link to 
+a product page of the product.
+
 ## ICS2000-Python
 A big thanks to Stijn-Jacobs for his research on controlling the ICS-2000. This plugin is created using his research, 
 so checkout [ICS2000-Python](https://github.com/Stijn-Jacobs/ICS2000-Python) on GitHub.
