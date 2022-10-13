@@ -5,8 +5,10 @@ import Command from './Command';
 import * as fs from 'fs';
 import Device from './Device';
 import DimDevice from './DimDevice';
-import DeviceData from './DeviceData';
+import DeviceData from './model/DeviceData';
 import axios from 'axios';
+import SmartMeterData from './model/SmartMeterData';
+import ColorTempDevice from './ColorTempDevice';
 
 // Set base url for all axios requests
 axios.defaults.baseURL = 'https://trustsmartcloud2.com/ics2000_api';
@@ -20,6 +22,7 @@ export default class Hub {
   public devices: Device[] = [];
   private localAddress?: string;
   public readonly deviceStatuses: Map<number, number[]> = new Map<number, number[]>();
+  private p1EntityId?: number;
 
   /**
    * Creates a Hub for easy communication with the ics-2000
@@ -215,10 +218,11 @@ export default class Hub {
       }
 
       switch (deviceType) {
+        case 36: // 36 is a dimmable IKEA/HUE light and same as 33 -- Thanks to suuus
+          return new ColorTempDevice(this, device as DeviceData);
         case 2:  // 2 is dimmable
         case 34: // 34 is dimmable -- Thanks to suuus
         case 33: // 33 zigbee (ledvance) dimmable and cool to warm white adjustable spot.
-        case 36: // 36 is a dimmable IKEA/HUE light and same as 33 -- Thanks to suuus
         case 40: // 40 is a dimmable lightbulb
         case 48: // 48 is dimmable group
           return new DimDevice(this, device as DeviceData);
@@ -319,7 +323,7 @@ export default class Hub {
    * @param isGroup A boolean which indicates whether the device is a group of other devices or not
    * @param sendLocal A boolean which indicates whether you want to send the command through KAKU cloud or local using UDP
    */
-  public dimDevice(deviceId: number, dimFunction, dimLevel, isGroup: boolean, sendLocal: boolean) {
+  public dimDevice(deviceId: number, dimFunction: number, dimLevel: number, isGroup: boolean, sendLocal: boolean) {
     if (!this.localAddress) {
       throw new Error('Local address is undefined');
     }
@@ -335,7 +339,26 @@ export default class Hub {
     } else {
       return this.sendCommandToCloud(command);
     }
+  }
 
+  public changeColorTemperature(
+    deviceId: number, colorTempFunction: number, colorTemperature: number, isGroup: boolean, sendLocal: boolean,
+  ) {
+    if (!this.localAddress) {
+      throw new Error('Local address is undefined');
+    }
+
+    if (colorTemperature < 0 || colorTemperature > 600) {
+      throw new Error(`Color temperature ${colorTemperature} is negative or greater than 600`);
+    }
+
+    const command = this.createCommand(deviceId, colorTempFunction, colorTemperature, isGroup);
+
+    if (sendLocal) {
+      return command.sendTo(this.localAddress!, 2012);
+    } else {
+      return this.sendCommandToCloud(command);
+    }
   }
 
   public async getAllDeviceStatuses() {
@@ -391,6 +414,53 @@ export default class Hub {
 
     return this.deviceStatuses.get(deviceId)!;
     // return this.getDeviceStatusFromServer(deviceId);
+  }
+
+  public async getP1EntityID(): Promise<number> {
+    const rawDevicesData = await this.getRawDevicesData(true, false);
+    const p1Entity = rawDevicesData.find(d => d.data?.module?.name === 'P1 Module');
+    return p1Entity?.id;
+  }
+
+  /**
+   * Get the current data from the P1 module (aka smart meter)
+   */
+  public async getSmartMeterData(): Promise<SmartMeterData> {
+    // eslint-disable-next-line eqeqeq
+    if (this.p1EntityId == null) {
+      this.p1EntityId = await this.getP1EntityID();
+    }
+
+    // If still null, no P1 smartmeter found
+    // eslint-disable-next-line eqeqeq
+    if (this.p1EntityId == null) {
+      throw Error('No entityId found for the P1 smartmeter!');
+    }
+
+    const params = new URLSearchParams({
+      'action': 'check',
+      'email': this.email,
+      'password_hash': this.password,
+      'mac': this.hubMac!,
+      'entity_id': this.p1EntityId.toString(),
+    });
+
+    const response = await axios.post('/entity.php', params.toString());
+    const p1EncryptedData = response.data[3];
+    const p1Data = Cryptographer.decryptBase64(p1EncryptedData, this.aesKey!);
+    const p1JsonData = JSON.parse(p1Data);
+    const functions: number[] = p1JsonData.module.functions;
+
+    return {
+      powerConsumedLowTariff: functions[0],
+      powerConsumed: functions[1],
+      powerProducedLowTariff: functions[2],
+      powerProduced: functions[3],
+      currentConsumption: functions[4],
+      currentProduction: functions[5],
+      gas: functions[6],
+      rawDataArray: functions,
+    };
   }
 
   /**

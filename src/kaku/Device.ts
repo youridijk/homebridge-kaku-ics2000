@@ -1,5 +1,5 @@
 import Hub from './Hub';
-import DeviceData from './DeviceData';
+import DeviceData from './model/DeviceData';
 
 /**
  * This class represents a device you can turn on or off
@@ -22,7 +22,7 @@ export default class Device {
   public constructor(
     hub: Hub,
     public readonly deviceData: DeviceData,
-    public readonly onOffFunction: number = 0,
+    public onOffFunction: number = 0,
   ) {
     this.#hub = hub;
     this.entityId = deviceData.data.module.id;

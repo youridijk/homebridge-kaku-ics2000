@@ -1,11 +1,13 @@
 import {API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic} from 'homebridge';
 import Hub from './kaku/Hub';
-import LightBulb from './LightBulb';
+import LightBulb from './devices/LightBulb';
 import {PLATFORM_NAME, PLUGIN_NAME, RELOAD_SWITCH_NAME} from './settings';
-import DimmableLightBulb from './DimmableLightBulb';
+import DimmableLightBulb from './devices/DimmableLightBulb';
 import ReloadSwitch from './ReloadSwitch';
 import schedule from 'node-schedule';
 import DimDevice from './kaku/DimDevice';
+import ColorTempDevice from './kaku/ColorTempDevice';
+import ColorTempLightBulb from './devices/ColorTempLightBulb';
 
 export default class KAKUPlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
@@ -94,7 +96,9 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
   private createDevice(accessory: PlatformAccessory) {
     const {device} = accessory.context;
 
-    if(device instanceof DimDevice){
+    if(device instanceof ColorTempDevice){
+      new ColorTempLightBulb(this, accessory);
+    }else if(device instanceof DimDevice){
       new DimmableLightBulb(this, accessory);
     }else {
       new LightBulb(this, accessory);

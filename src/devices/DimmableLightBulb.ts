@@ -1,7 +1,7 @@
 import LightBulb from './LightBulb';
-import KAKUPlatform from './KAKUPlatform';
+import KAKUPlatform from '../KAKUPlatform';
 import {CharacteristicValue, HAPStatus, PlatformAccessory} from 'homebridge';
-import DimDevice from './kaku/DimDevice';
+import DimDevice from '../kaku/DimDevice';
 
 export default class DimmableLightBulb extends LightBulb {
   public readonly device: DimDevice;

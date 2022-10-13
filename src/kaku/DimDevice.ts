@@ -1,6 +1,6 @@
 import Device from './Device';
 import Hub from './Hub';
-import DeviceData from './DeviceData';
+import DeviceData from './model/DeviceData';
 
 export default class DimDevice extends Device {
 
@@ -17,7 +17,7 @@ export default class DimDevice extends Device {
     hub: Hub,
     deviceData: DeviceData,
     onOffFunction = 3,
-    public readonly dimFunction: number = 4,
+    public dimFunction: number = 4,
   ) {
     super(hub, deviceData, onOffFunction);
   }
