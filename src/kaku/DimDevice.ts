@@ -5,11 +5,11 @@ import DeviceData from './model/DeviceData';
 export default class DimDevice extends Device {
 
   /**
-   * Creates a device that can only turn on or off
+   * Creates a device that is dimmable
    * @param hub The Hub you use to control this device
    * @param deviceData The data pulled from the KAKU cloud about this device
    * @param onOffFunction An integer that represents the index for on/off status and the function used to change on/off status
-   * Defaults 0 for simple on/off wall sockets
+   * Defaults 3 for zigbee dimmable
    * @param dimFunction An integer that represents the index for dim level and the function used to change the dim level
    * Defaults 4 for zigbee lightbulb
    */

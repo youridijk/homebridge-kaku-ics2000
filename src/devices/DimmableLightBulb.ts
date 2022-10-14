@@ -19,15 +19,15 @@ export default class DimmableLightBulb extends LightBulb {
       .onGet(this.getBrightness.bind(this))
       .onSet(this.changeBrightness.bind(this))
       // KAKU uses a value from 0 to 255 for the dim value, so we set this as the min en max values
+      // DeviceType 2 uses 0 to 15 for dim values
       .setProps({
         minValue: 0,
-        maxValue: 255,
+        maxValue: this.device.deviceType === 2 ? 15 : 255,
       });
   }
 
   private async getBrightness(): Promise<number> {
     try {
-      // const status = (await this.hub.getDeviceStatus(this.deviceId))[4];
       const status = await this.device.getDimLevel();
       this.logger.debug(`Current brightness for ${this.deviceName}: ${status}`);
       return status;

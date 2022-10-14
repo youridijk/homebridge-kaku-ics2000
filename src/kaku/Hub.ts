@@ -220,12 +220,13 @@ export default class Hub {
       switch (deviceType) {
         case 36: // 36 is a dimmable IKEA/HUE light and same as 33 -- Thanks to suuus
           return new ColorTempDevice(this, device as DeviceData);
-        case 2:  // 2 is dimmable
         case 34: // 34 is dimmable -- Thanks to suuus
         case 33: // 33 zigbee (ledvance) dimmable and cool to warm white adjustable spot.
         case 40: // 40 is a dimmable lightbulb
         case 48: // 48 is dimmable group
           return new DimDevice(this, device as DeviceData);
+        case 2:  // 2 is kaku dimmable
+          return new DimDevice(this, device as DeviceData, 0, 1);
         default:
           return new Device(this, device as DeviceData);
       }
@@ -392,7 +393,8 @@ export default class Hub {
    * Get the current status of a device
    * @param deviceId The id of the device you want to get the status of
    * @returns A list of numbers that represents the current status of the device.
-   * index 0 is on/off status for switch, index 3 on/off for zigbee lightbulb, index 4 is current dim level
+   * index 0 is on/off status for switch, index 1 is dim level device type 2,
+   * index 3 on/off for zigbee lightbulb, index 4 is current dim level
    */
   public async getDeviceStatus(deviceId: number): Promise<number[]> {
     const currentDate = new Date();
