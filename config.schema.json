@@ -33,9 +33,9 @@
         "type": "string",
         "required": false
       },
-      "dimmableOverrides": {
+      "deviceConfigOverrides": {
         "title": "A list of entityIDs of devices that must be treated as a dimmable device, whether it is or isn't.",
-        "type": "array",
+        "type": "object",
         "required": false
       }
     }

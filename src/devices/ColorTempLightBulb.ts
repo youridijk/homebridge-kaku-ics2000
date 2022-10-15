@@ -1,5 +1,5 @@
 import LightBulb from './LightBulb';
-import ColorTempDevice from '../kaku/ColorTempDevice';
+import ColorTempDevice from '../kaku/devices/ColorTempDevice';
 import KAKUPlatform from '../KAKUPlatform';
 import {CharacteristicValue, HAPStatus, PlatformAccessory} from 'homebridge';
 

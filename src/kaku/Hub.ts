@@ -3,12 +3,15 @@ import Cryptographer from './Cryptographer';
 import dgram from 'dgram';
 import Command from './Command';
 import * as fs from 'fs';
-import Device from './Device';
-import DimDevice from './DimDevice';
+import Device from './devices/Device';
+import DimDevice from './devices/DimDevice';
 import DeviceData from './model/DeviceData';
 import axios from 'axios';
 import SmartMeterData from './model/SmartMeterData';
-import ColorTempDevice from './ColorTempDevice';
+import ColorTempDevice from './devices/ColorTempDevice';
+import DeviceConfig from './model/DeviceConfig';
+import deviceConfigs from './DeviceConfigs';
+import SwitchDevice from './devices/SwitchDevice';
 
 // Set base url for all axios requests
 axios.defaults.baseURL = 'https://trustsmartcloud2.com/ics2000_api';
@@ -23,6 +26,7 @@ export default class Hub {
   private localAddress?: string;
   public readonly deviceStatuses: Map<number, number[]> = new Map<number, number[]>();
   private p1EntityId?: number;
+  public readonly deviceConfigs: Record<number, DeviceConfig>;
 
   /**
    * Creates a Hub for easy communication with the ics-2000
@@ -31,16 +35,21 @@ export default class Hub {
    * @param deviceBlacklist A list of entityID's you don't want to appear in HomeKit
    * @param localBackupAddress Optionally, you can pass the ip address of your ics-2000
    * in case it can't be automatically found in the network
-   * @param dimmableOverrides A list of entityIDs of devices that must be treated as a dimmable device, whether it is or isn't.
+   * @param deviceConfigsOverrides
    */
   constructor(
     private readonly email: string,
     private readonly password: string,
     private readonly deviceBlacklist: number[] = [],
     private readonly localBackupAddress?: string,
-    private readonly dimmableOverrides: number[] = [],
+    deviceConfigsOverrides: Record<number, DeviceConfig> = {},
   ) {
     this.localAddress = localBackupAddress;
+    this.deviceConfigs = {...deviceConfigs, ...deviceConfigsOverrides};
+
+    if (!email || !password) {
+      throw new Error('Email and/ or password missing');
+    }
   }
 
   /**
@@ -192,7 +201,7 @@ export default class Hub {
       // console.log( device['data']['module']['device']);
       device['isGroup'] = 'group' in data;
       // Check if entry is a device or a group
-      if ('module' in data && 'info' in data['module'] && data['module']['device'] !== 26) {
+      if ('module' in data && 'info' in data['module']) {
         // In my case, there are some devices in this list that are deleted and not shown in the app
         // So we need to filter this out
         // The sum of all values in the info array is always greater than 0 if device exist
@@ -213,23 +222,25 @@ export default class Hub {
       device['device'] = device['data']['module']['device'];
       const deviceType = device['device'];
 
-      if (this.dimmableOverrides.includes(device['id'])) {
-        return new DimDevice(this, device as DeviceData);
+      const deviceConfig = this.deviceConfigs[deviceType];
+
+      if (!deviceConfig) {
+        return new SwitchDevice(this, device as DeviceData, {name: 'Unknown device type', onOffFunction: 0});
       }
 
-      switch (deviceType) {
-        case 36: // 36 is a dimmable IKEA/HUE light and same as 33 -- Thanks to suuus
-          return new ColorTempDevice(this, device as DeviceData);
-        case 34: // 34 is dimmable -- Thanks to suuus
-        case 33: // 33 zigbee (ledvance) dimmable and cool to warm white adjustable spot.
-        case 40: // 40 is a dimmable lightbulb
-        case 48: // 48 is dimmable group
-          return new DimDevice(this, device as DeviceData);
-        case 2:  // 2 is kaku dimmable
-          return new DimDevice(this, device as DeviceData, 0, 1);
-        default:
-          return new Device(this, device as DeviceData);
+      if (deviceConfig.colorTemperatureFunction) {
+        return new ColorTempDevice(this, device as DeviceData, deviceConfig);
       }
+
+      if(deviceConfig.dimFunction) {
+        return new DimDevice(this, device as DeviceData, deviceConfig);
+      }
+
+      if(deviceConfig.onOffFunction) {
+        return new SwitchDevice(this, device as DeviceData, deviceConfig);
+      }
+
+      return new Device(this, device as DeviceData, deviceConfig);
     });
 
     return this.devices;

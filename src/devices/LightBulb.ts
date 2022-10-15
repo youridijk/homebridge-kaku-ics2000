@@ -1,22 +1,19 @@
 import {CharacteristicValue, HAPStatus, Logger, PlatformAccessory, Service} from 'homebridge';
 import Hub from '../kaku/Hub';
 import KAKUPlatform from '../KAKUPlatform';
-import Device from '../kaku/Device';
+import SwitchDevice from '../kaku/devices/SwitchDevice';
 
 /**
  * This class is a simple KAKU or other zigbee lightbulb / switch connected to your ics 2000. This lightbulb can only turn of and on
  */
 export default class LightBulb {
-  protected service: Service;
-  protected readonly device: Device;
+  protected readonly service: Service;
+  protected readonly device: SwitchDevice;
   protected readonly deviceId: number;
   protected readonly deviceName: string;
   protected readonly isGroup: boolean;
   protected readonly hub: Hub;
   protected readonly logger: Logger;
-
-  // The index the status for on/off is stored and the function to use when you turn a device on/off
-  protected onOffCharacteristicFunction = 0;
 
   constructor(
     protected readonly platform: KAKUPlatform,
@@ -33,7 +30,8 @@ export default class LightBulb {
     this.logger.debug(`${this.deviceName} ${this.accessoryType}`);
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Klik Aan Klik Uit')
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, this.deviceId.toString());
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, this.deviceId.toString())
+      .setCharacteristic(this.platform.Characteristic.Name, this.device.deviceConfig.name);
 
     this.service = this.accessory.getService(this.platform.Service[accessoryType]) ||
       this.accessory.addService(this.platform.Service[accessoryType]);
@@ -65,13 +63,7 @@ export default class LightBulb {
   public async getOn() {
     try {
       // Get status for this device
-      // const statusList = await this.hub.getDeviceStatus(this.deviceId);
-      // this.logger.debug(`${this.deviceName} stat ${statusList}`);
-      // const status = statusList[this.onOffCharacteristicFunction];
-      // this.platform.logger.debug(`Current state for ${this.deviceName}: ${status}`);
       return this.device.getOnStatus();
-
-      // return status === 1;
     } catch (e) {
       this.platform.logger.error(`Error getting state for ${this.deviceName}: ${e}`);
       throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);

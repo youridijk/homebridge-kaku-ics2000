@@ -5,8 +5,8 @@ import {PLATFORM_NAME, PLUGIN_NAME, RELOAD_SWITCH_NAME} from './settings';
 import DimmableLightBulb from './devices/DimmableLightBulb';
 import ReloadSwitch from './ReloadSwitch';
 import schedule from 'node-schedule';
-import DimDevice from './kaku/DimDevice';
-import ColorTempDevice from './kaku/ColorTempDevice';
+import DimDevice from './kaku/devices/DimDevice';
+import ColorTempDevice from './kaku/devices/ColorTempDevice';
 import ColorTempLightBulb from './devices/ColorTempLightBulb';
 
 export default class KAKUPlatform implements DynamicPlatformPlugin {
@@ -23,10 +23,6 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
   ) {
     this.logger.debug('Finished initializing platform:', this.config.name);
     const {email, password} = config;
-
-    if (!email || !password) {
-      throw new Error('Email and/ or password missing');
-    }
 
     const deviceBlacklist: number[] = config.deviceBlacklist ?? [];
 
@@ -96,11 +92,11 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
   private createDevice(accessory: PlatformAccessory) {
     const {device} = accessory.context;
 
-    if(device instanceof ColorTempDevice){
+    if (device instanceof ColorTempDevice) {
       new ColorTempLightBulb(this, accessory);
-    }else if(device instanceof DimDevice){
+    } else if (device instanceof DimDevice) {
       new DimmableLightBulb(this, accessory);
-    }else {
+    } else {
       new LightBulb(this, accessory);
     }
   }
@@ -110,16 +106,18 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
     this.logger.info('Searching hub');
     const {address: hubIp, isBackupAddress} = await this.hub.discoverHubLocal(10_000);
 
-    if(isBackupAddress){
+    if (isBackupAddress) {
       this.searchTimeOutWarning();
     }
 
     this.logger.info(`Found hub: ${hubIp}`);
     this.logger.info('Pulling devices from server');
     const foundDevices = await this.hub.pullDevices();
+    const filteredDevices = foundDevices.filter(d => !d.disabled);
+
     this.logger.info(`Found ${foundDevices.length} devices`);
 
-    for (const device of foundDevices) {
+    for (const device of filteredDevices) {
       const entityId = device.entityId;
       const deviceType = device.deviceType;
 
@@ -172,7 +170,7 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
     this.logger.info('Created reload switch');
   }
 
-  private searchTimeOutWarning(): void{
+  private searchTimeOutWarning(): void {
     this.logger.warn('Searching hub timed out! Using backup address for communication');
   }
 }
