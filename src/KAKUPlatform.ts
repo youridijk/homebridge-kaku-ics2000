@@ -36,14 +36,15 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
       this.logger.debug(`Using ${localBackupAddress!} as backup ip`);
     }
 
-    const dimmableOverrides = config.dimmableOverrides ?? [];
+    const deviceConfigsOverrides = config.deviceConfigsOverrides ?? {};
+    const keyCount = Object.keys(deviceConfigsOverrides).length;
 
-    if (dimmableOverrides.length > 0) {
-      this.logger.debug(`Dimmable overrides contains ${dimmableOverrides.length} devices: ${dimmableOverrides}`);
+    if (keyCount > 0) {
+      this.logger.debug(`Device config overrides contains ${keyCount} device types`);
     }
 
     // Create a new Hub that's used in all accessories
-    this.hub = new Hub(email, password, deviceBlacklist, localBackupAddress, dimmableOverrides);
+    this.hub = new Hub(email, password, deviceBlacklist, localBackupAddress, deviceConfigsOverrides);
 
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
     // Dynamic Platform plugins should only register new accessories after this event was fired,
