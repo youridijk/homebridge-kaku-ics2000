@@ -11,7 +11,7 @@ export default class DimDevice extends SwitchDevice {
   ) {
     super(hub, deviceData, deviceConfig);
 
-    if(!deviceConfig.dimFunction) {
+    if(deviceConfig.dimFunction == null) {
       throw new Error(`Dim function not defined for '${this.deviceData.name}'`);
     }
   }

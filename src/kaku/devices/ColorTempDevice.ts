@@ -11,7 +11,7 @@ export default class ColorTempDevice extends DimDevice {
   ) {
     super(hub, deviceData, deviceConfig);
 
-    if(!deviceConfig.colorTemperatureFunction) {
+    if(deviceConfig.colorTemperatureFunction == null) {
       throw new Error(`Color temperature function not defined for '${this.deviceData.name}'`);
     }
   }

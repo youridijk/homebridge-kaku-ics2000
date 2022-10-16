@@ -97,7 +97,6 @@ export default class Hub {
       data['data'] = JSON.parse(decryptedData);
     }
 
-    // eslint-disable-next-line eqeqeq
     if (decryptStatus && data['status'] != null) {
       const decryptedStatus = Cryptographer.decryptBase64(data['status'], this.aesKey!);
       data['status'] = JSON.parse(decryptedStatus);
@@ -168,7 +167,6 @@ export default class Hub {
     //     device['data'] = JSON.parse(decryptedData);
     //   }
     //
-    //   // eslint-disable-next-line eqeqeq
     //   if (decryptStatus && device['status'] != null) {
     //     const decryptedStatus = Cryptographer.decryptBase64(device['status'], this.aesKey!);
     //     device['status'] = JSON.parse(decryptedStatus);
@@ -228,15 +226,15 @@ export default class Hub {
         return new SwitchDevice(this, device as DeviceData, {name: 'Unknown device type', onOffFunction: 0});
       }
 
-      if (deviceConfig.colorTemperatureFunction) {
+      if (deviceConfig.colorTemperatureFunction != null) {
         return new ColorTempDevice(this, device as DeviceData, deviceConfig);
       }
 
-      if(deviceConfig.dimFunction) {
+      if(deviceConfig.dimFunction != null) {
         return new DimDevice(this, device as DeviceData, deviceConfig);
       }
 
-      if(deviceConfig.onOffFunction) {
+      if(deviceConfig.onOffFunction != null) {
         return new SwitchDevice(this, device as DeviceData, deviceConfig);
       }
 
@@ -253,7 +251,7 @@ export default class Hub {
   public async discoverHubLocal(searchTimeout = 10_000) {
     return new Promise<{ address: string; isBackupAddress: boolean }>((resolve, reject) => {
       const message = Buffer.from(
-        '0x010003ffffffffffffca000000010400044795000401040004000400040000000000000000020000003000',
+        '010003ffffffffffffca000000010400044795000401040004000400040000000000000000020000003000',
         'hex',
       );
       const client = dgram.createSocket('udp4');
@@ -439,13 +437,11 @@ export default class Hub {
    * Get the current data from the P1 module (aka smart meter)
    */
   public async getSmartMeterData(): Promise<SmartMeterData> {
-    // eslint-disable-next-line eqeqeq
     if (this.p1EntityId == null) {
       this.p1EntityId = await this.getP1EntityID();
     }
 
     // If still null, no P1 smartmeter found
-    // eslint-disable-next-line eqeqeq
     if (this.p1EntityId == null) {
       throw Error('No entityId found for the P1 smartmeter!');
     }

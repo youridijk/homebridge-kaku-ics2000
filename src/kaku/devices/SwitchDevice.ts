@@ -12,7 +12,7 @@ export default class SwitchDevice extends Device {
   ) {
     super(hub, deviceData, deviceConfig);
 
-    if(!deviceConfig.onOffFunction) {
+    if(deviceConfig.onOffFunction == null) {
       throw new Error(`On/off function not defined for '${this.deviceData.name}'`);
     }
   }

@@ -8,6 +8,7 @@ import schedule from 'node-schedule';
 import DimDevice from './kaku/devices/DimDevice';
 import ColorTempDevice from './kaku/devices/ColorTempDevice';
 import ColorTempLightBulb from './devices/ColorTempLightBulb';
+import SwitchDevice from './kaku/devices/SwitchDevice';
 
 export default class KAKUPlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
@@ -27,20 +28,20 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
     const deviceBlacklist: number[] = config.deviceBlacklist ?? [];
 
     if (deviceBlacklist.length > 0) {
-      this.logger.debug(`Blacklist contains ${deviceBlacklist.length} devices: ${deviceBlacklist}`);
+      this.logger.info(`Blacklist contains ${deviceBlacklist.length} devices: ${deviceBlacklist}`);
     }
 
     const {localBackupAddress} = config;
 
     if (localBackupAddress) {
-      this.logger.debug(`Using ${localBackupAddress!} as backup ip`);
+      this.logger.info(`Using ${localBackupAddress!} as backup ip`);
     }
 
     const deviceConfigsOverrides = config.deviceConfigsOverrides ?? {};
     const keyCount = Object.keys(deviceConfigsOverrides).length;
 
     if (keyCount > 0) {
-      this.logger.debug(`Device config overrides contains ${keyCount} device types`);
+      this.logger.info(`Device config overrides contains ${keyCount} device types`);
     }
 
     // Create a new Hub that's used in all accessories
@@ -97,8 +98,10 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
       new ColorTempLightBulb(this, accessory);
     } else if (device instanceof DimDevice) {
       new DimmableLightBulb(this, accessory);
-    } else {
+    } else if (device instanceof SwitchDevice) {
       new LightBulb(this, accessory);
+    } else {
+      throw new Error(`Device hasn't any controls: ${device.entityId} ${device.name} ${device.deviceType}`);
     }
   }
 
@@ -132,22 +135,26 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
       const existingAccessory = this.cachedAccessories.find(accessory => accessory.UUID === uuid);
 
       // Create the accessory
-      if (existingAccessory) {
-        existingAccessory.context.device = device;
-        this.createDevice(existingAccessory);
-        this.logger.info(`Loaded device from cache: 
+      try {
+        if (existingAccessory) {
+          existingAccessory.context.device = device;
+          this.createDevice(existingAccessory);
+          this.logger.info(`Loaded device from cache: 
         name=${device.name}, entityId=${device.entityId}, deviceType=${deviceType}`);
-      } else {
-        const deviceName = device.name;
-        const accessory = new this.api.platformAccessory(deviceName, uuid);
+        } else {
+          const deviceName = device.name;
+          const accessory = new this.api.platformAccessory(deviceName, uuid);
 
-        // store a copy of the device object in the `accessory.context`
-        accessory.context.device = device;
-        accessory.context.name = deviceName;
+          // store a copy of the device object in the `accessory.context`
+          accessory.context.device = device;
+          accessory.context.name = deviceName;
 
-        this.createDevice(accessory);
-        this.logger.info(`Loaded new device: name=${device.name}, entityId=${device.entityId}, deviceType=${deviceType}`);
-        this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+          this.createDevice(accessory);
+          this.logger.info(`Loaded new device: name=${device.name}, entityId=${device.entityId}, deviceType=${deviceType}`);
+          this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+        }
+      }catch (e){
+        this.logger.error(`${e}`);
       }
     }
   }

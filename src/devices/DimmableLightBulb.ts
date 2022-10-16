@@ -27,6 +27,9 @@ export default class DimmableLightBulb extends LightBulb {
   private async getBrightness(): Promise<number> {
     try {
       const status = await this.device.getDimLevel();
+      if (status == null) {
+        this.logger.debug('status for ' + this.deviceName + ' ' + await this.device.getStatus());
+      }
       this.logger.debug(`Current brightness for ${this.deviceName}: ${status}`);
       return status;
     } catch (e) {

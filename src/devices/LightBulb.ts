@@ -31,7 +31,7 @@ export default class LightBulb {
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Klik Aan Klik Uit')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.deviceId.toString())
-      .setCharacteristic(this.platform.Characteristic.Name, this.device.deviceConfig.name);
+      .setCharacteristic(this.platform.Characteristic.Model, this.device.deviceConfig.name);
 
     this.service = this.accessory.getService(this.platform.Service[accessoryType]) ||
       this.accessory.addService(this.platform.Service[accessoryType]);
