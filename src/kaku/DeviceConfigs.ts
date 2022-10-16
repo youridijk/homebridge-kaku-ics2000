@@ -9,79 +9,79 @@ import DeviceConfig from './model/DeviceConfig';
 
 const deviceConfigs: Record<number, DeviceConfig> = {
   1: {
-    name: 'KAKU Smartplug',
+    modelName: 'KAKU Smartplug',
     onOffFunction: 0,
   },
   2: { // DeviceType 2 uses 0 to 15 for dim values
-    name: 'KAKU dimmable',
+    modelName: 'KAKU dimmable',
     onOffFunction: 0,
     dimFunction: 1,
     maxBrightness: 15,
   },
   4: {
     disabled: true,
-    name: 'Trust wireless motion detector for outdoor use',
+    modelName: 'Trust wireless motion detector for outdoor use',
   },
   6: {
     disabled: true,
-    name: 'Doorbell button',
+    modelName: 'Doorbell button',
   },
   13: {
     disabled: true,
-    name: 'KAKU doorbell gong/ speaker',
+    modelName: 'KAKU doorbell gong/ speaker',
   },
   14: {
     disabled: true,
-    name: 'Ambient light sensor',
+    modelName: 'Ambient light sensor',
   },
   24: {
-    name: 'KAKU dimmable lightbulb',
+    modelName: 'KAKU dimmable lightbulb',
     onOffFunction: 0,
     dimFunction: 1,
     maxBrightness: 15,
   },
   26: {
     disabled: true,
-    name: 'KAKU 2 button wireless wall switch',
+    modelName: 'KAKU 2 button wireless wall switch',
   },
   33: { // 0 for onOff not working, maybe this,
-    name: 'Zigbee (ledvance) smart plug',
+    modelName: 'Zigbee (ledvance) smart plug',
     onOffFunction: 3,
   },
   34: { // not tested
-    name: 'Dimmable',
+    modelName: 'Dimmable',
     onOffFunction: 3,
     dimFunction: 4,
   },
   36: {
-    name: 'Zigbee (ledvance) dimmable with color temperature',
+    modelName: 'Zigbee (ledvance) dimmable with color temperature',
     onOffFunction: 3,
     dimFunction: 4,
     colorTemperatureFunction: 9,
   },
   40: {
-    name: 'KAKU dimmable lightbulb',
+    modelName: 'KAKU dimmable lightbulb',
     onOffFunction: 0,
     dimFunction: 4,
   },
   41: { //same as 33
-    name: 'Zigbee (ledvance) smart plug',
+    modelName: 'Zigbee (ledvance) smart plug',
     onOffFunction: 3,
   },
   43: {
     disabled: true,
-    name: 'KAKU wireless smoke detector ZSDR-850',
+    modelName: 'KAKU wireless smoke detector ZSDR-850',
   },
   48: {
-    name: 'KAKU group with dimmable lightbulb',
+    modelName: 'KAKU group with dimmable lightbulb',
     onOffFunction: 3,
     dimFunction: 4,
   },
-  238: {disabled: true, name: 'P1 Module'},
-  240: {disabled: true, name: 'Alarm Module'},
-  241: {disabled: true, name: 'IPCam Module'},
-  242: {disabled: true, name: 'Geofencing Module'},
-  243: {disabled: true, name: 'System Module'},
+  238: {disabled: true, modelName: 'P1 Module'},
+  240: {disabled: true, modelName: 'Alarm Module'},
+  241: {disabled: true, modelName: 'IPCam Module'},
+  242: {disabled: true, modelName: 'Geofencing Module'},
+  243: {disabled: true, modelName: 'System Module'},
 };
 
 export default deviceConfigs;

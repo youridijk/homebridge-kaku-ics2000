@@ -223,7 +223,7 @@ export default class Hub {
       const deviceConfig = this.deviceConfigs[deviceType];
 
       if (!deviceConfig) {
-        return new SwitchDevice(this, device as DeviceData, {name: 'Unknown device type', onOffFunction: 0});
+        return new SwitchDevice(this, device as DeviceData, {modelName: 'Unknown device type', onOffFunction: 0});
       }
 
       if (deviceConfig.colorTemperatureFunction != null) {
