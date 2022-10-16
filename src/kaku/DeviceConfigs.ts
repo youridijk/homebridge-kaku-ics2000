@@ -36,8 +36,9 @@ const deviceConfigs: Record<number, DeviceConfig> = {
   },
   24: {
     name: 'KAKU dimmable lightbulb',
-    onOffFunction: 3,
-    dimFunction: 4,
+    onOffFunction: 0,
+    dimFunction: 1,
+    maxBrightness: 15,
   },
   26: {
     disabled: true,
@@ -60,12 +61,16 @@ const deviceConfigs: Record<number, DeviceConfig> = {
   },
   40: {
     name: 'KAKU dimmable lightbulb',
-    onOffFunction: 3,
+    onOffFunction: 0,
     dimFunction: 4,
   },
   41: { //same as 33
     name: 'Zigbee (ledvance) smart plug',
     onOffFunction: 3,
+  },
+  43: {
+    disabled: true,
+    name: 'KAKU wireless smoke detector ZSDR-850',
   },
   48: {
     name: 'KAKU group with dimmable lightbulb',

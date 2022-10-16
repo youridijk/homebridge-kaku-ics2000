@@ -3,7 +3,7 @@ import DeviceData from '../model/DeviceData';
 import DimDevice from './DimDevice';
 import DeviceConfig from '../model/DeviceConfig';
 
-export default class ColorTempDevice extends DimDevice {
+export default class ColorTemperatureDevice extends DimDevice {
   public constructor(
     hub: Hub,
     deviceData: DeviceData,
@@ -30,4 +30,4 @@ export default class ColorTempDevice extends DimDevice {
   }
 }
 
-module.exports = ColorTempDevice;
+module.exports = ColorTemperatureDevice;

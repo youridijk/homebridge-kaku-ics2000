@@ -8,7 +8,7 @@ import DimDevice from './devices/DimDevice';
 import DeviceData from './model/DeviceData';
 import axios from 'axios';
 import SmartMeterData from './model/SmartMeterData';
-import ColorTempDevice from './devices/ColorTempDevice';
+import ColorTemperatureDevice from './devices/ColorTemperatureDevice';
 import DeviceConfig from './model/DeviceConfig';
 import deviceConfigs from './DeviceConfigs';
 import SwitchDevice from './devices/SwitchDevice';
@@ -227,7 +227,7 @@ export default class Hub {
       }
 
       if (deviceConfig.colorTemperatureFunction != null) {
-        return new ColorTempDevice(this, device as DeviceData, deviceConfig);
+        return new ColorTemperatureDevice(this, device as DeviceData, deviceConfig);
       }
 
       if(deviceConfig.dimFunction != null) {
@@ -247,11 +247,12 @@ export default class Hub {
   /**
    * Search in you local network for the ics-2000. The ics-2000 listens to a broadcast message, so that's the way we find it out
    * @param searchTimeout The amount of milliseconds you want to wait for an answer on the sent message, before the promise is rejected
+   * @param message
    */
-  public async discoverHubLocal(searchTimeout = 10_000) {
+  public async discoverHubLocal(searchTimeout = 10_000, message?: string) {
     return new Promise<{ address: string; isBackupAddress: boolean }>((resolve, reject) => {
-      const message = Buffer.from(
-        '010003ffffffffffffca000000010400044795000401040004000400040000000000000000020000003000',
+      const messageBuffer = Buffer.from(
+        message ?? '010003ffffffffffffca000000010400044795000401040004000400040000000000000000020000003000',
         'hex',
       );
       const client = dgram.createSocket('udp4');
@@ -274,7 +275,7 @@ export default class Hub {
 
       client.bind(() => client.setBroadcast(true));
 
-      client.send(message, 2012, '255.255.255.255');
+      client.send(messageBuffer, 2012, '255.255.255.255');
     });
   }
 

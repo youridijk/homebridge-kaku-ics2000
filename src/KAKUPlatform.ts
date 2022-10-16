@@ -6,8 +6,8 @@ import DimmableLightBulb from './devices/DimmableLightBulb';
 import ReloadSwitch from './ReloadSwitch';
 import schedule from 'node-schedule';
 import DimDevice from './kaku/devices/DimDevice';
-import ColorTempDevice from './kaku/devices/ColorTempDevice';
-import ColorTempLightBulb from './devices/ColorTempLightBulb';
+import ColorTemperatureDevice from './kaku/devices/ColorTemperatureDevice';
+import ColorTemperatureLightBulb from './devices/ColorTemperatureLightBulb';
 import SwitchDevice from './kaku/devices/SwitchDevice';
 
 export default class KAKUPlatform implements DynamicPlatformPlugin {
@@ -94,8 +94,8 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
   private createDevice(accessory: PlatformAccessory) {
     const {device} = accessory.context;
 
-    if (device instanceof ColorTempDevice) {
-      new ColorTempLightBulb(this, accessory);
+    if (device instanceof ColorTemperatureDevice) {
+      new ColorTemperatureLightBulb(this, accessory);
     } else if (device instanceof DimDevice) {
       new DimmableLightBulb(this, accessory);
     } else if (device instanceof SwitchDevice) {

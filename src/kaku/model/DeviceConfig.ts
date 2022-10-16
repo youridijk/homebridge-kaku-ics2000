@@ -6,4 +6,5 @@ export default interface DeviceConfig {
   readonly colorTemperatureFunction?: number;
 
   readonly maxBrightness?: number;
+  readonly maxColorTemperature?: number;
 }
