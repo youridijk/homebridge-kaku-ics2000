@@ -16,6 +16,7 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
   private readonly cachedAccessories: PlatformAccessory[] = [];
   public readonly hub: Hub;
   private registeredDeviceIds: number[] = [];
+  public readonly discoverMessage?: string;
 
   constructor(
     public readonly logger: Logger,
@@ -44,6 +45,12 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
       this.logger.info(`Device config overrides contains ${keyCount} device types`);
     }
 
+    this.discoverMessage = config.discoverMessage;
+
+    if(this.discoverMessage){
+      this.logger.info(`Using custom discover message: ${this.discoverMessage!}`);
+    }
+
     // Create a new Hub that's used in all accessories
     this.hub = new Hub(email, password, deviceBlacklist, localBackupAddress, deviceConfigsOverrides);
 
@@ -59,7 +66,7 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
       schedule.scheduleJob('0 0 * * *', async () => {
         this.logger.info('Pulling AES-key from server and searching for ics2000 as scheduled');
         // this.setup();
-        const {isBackupAddress} = await this.hub.discoverHubLocal(10_000);
+        const {isBackupAddress} = await this.hub.discoverHubLocal(10_000, this.discoverMessage);
         if (isBackupAddress) {
           this.searchTimeOutWarning();
         }
@@ -108,7 +115,7 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
   private async discoverDevices() {
     // Search hub and pull devices from the server
     this.logger.info('Searching hub');
-    const {address: hubIp, isBackupAddress} = await this.hub.discoverHubLocal(10_000);
+    const {address: hubIp, isBackupAddress} = await this.hub.discoverHubLocal(10_000, this.discoverMessage);
 
     if (isBackupAddress) {
       this.searchTimeOutWarning();
