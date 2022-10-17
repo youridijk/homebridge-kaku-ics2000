@@ -34,7 +34,7 @@
         "required": false
       },
       "deviceConfigOverrides": {
-        "title": "A list of entityIDs of devices that must be treated as a dimmable device, whether it is or isn't.",
+        "title": "An object used to override the content of DeviceConfigs.ts.",
         "type": "object",
         "required": false
       },

@@ -61,7 +61,7 @@ const deviceConfigs: Record<number, DeviceConfig> = {
   },
   40: {
     modelName: 'KAKU dimmable lightbulb',
-    onOffFunction: 0,
+    onOffFunction: 3,
     dimFunction: 4,
   },
   41: { //same as 33
