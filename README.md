@@ -21,10 +21,9 @@ In addition, there are a few optional options:
 - `deviceBlacklist` - A list of entityIDs of devices you don't want to show up in HomeKit.
 - `localBackupAddress` - A backup IP-address that will be used if the IP-address of your ICS-2000 can't be found
   automatically.
-- `dimmableOverrides` - A list of entityIDs of devices that must be treated as a dimmable device, whether it is or
-  isn't.
+- `deviceConfigOverrides` - An object containing override or additional configs. The key is the device type, the value an object according to the [DeviceConfig interface](src/kaku/model/DeviceConfig.ts).
 
-An example config.json with these 2 keys:
+An example config.json with those keys:
 
 ```json
 {
@@ -43,10 +42,10 @@ An example config.json with these 2 keys:
 
 ## TODO
 
-| Done? | Feature                                                                                                                 |
-|-------|-------------------------------------------------------------------------------------------------------------------------|
-| ❌     | Proper per device hardcoded config like is dimmable, has color temp, dim function, on/off function, color temp function |
-| ❌     | User configurable config per device (same config as point above                                                         |
+| Done?  | Feature                                                                                                                 |
+|--------|-------------------------------------------------------------------------------------------------------------------------|
+| ✅     | Proper per device hardcoded config like is dimmable, has color temp, dim function, on/off function, color temp function |
+| ✅     | User configurable config per device (same config as point above)                                                         |
 | ❌     | Debug script in JS. CLI script to control KAKU devices, get status and decrypt messages                                 |
 | ❌     | REST server to control KAKU devices, get status and decrypt messages                                                    |
 | 
@@ -57,6 +56,9 @@ At boot, this plugin will show some information for every device that it adds to
 put your device types with a short description of the device (e.g. Zigbee dimmer, KAKU smart plug) and optionally a link
 to a product page of the product, in a comment
 at [issue #12](https://github.com/youridijk/homebridge-kaku-ics2000/issues/12).
+If you have devices that don't respond to the commands of this plugin, 
+try to identify the functions it uses and open up a PR to add it to [DeviceConfigs.ts](src/kaku/DeviceConfigs.ts)
+or open up an issue.
 
 ## ICS2000-Python
 
