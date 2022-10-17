@@ -1,7 +1,7 @@
 import LightBulb from './LightBulb';
 import KAKUPlatform from '../KAKUPlatform';
 import {CharacteristicValue, HAPStatus, PlatformAccessory} from 'homebridge';
-import DimDevice from '../kaku/DimDevice';
+import DimDevice from '../kaku/devices/DimDevice';
 
 export default class DimmableLightBulb extends LightBulb {
   public readonly device: DimDevice;
@@ -12,23 +12,24 @@ export default class DimmableLightBulb extends LightBulb {
   ) {
     super(platform, accessory, 'Lightbulb');
     this.device = accessory.context.device;
-    // The Function for turning a dimmable lightbulb on or off is 3
-    this.onOffCharacteristicFunction = 3;
 
     this.service.getCharacteristic(this.platform.Characteristic.Brightness)
       .onGet(this.getBrightness.bind(this))
       .onSet(this.changeBrightness.bind(this))
       // KAKU uses a value from 0 to 255 for the dim value, so we set this as the min en max values
-      // DeviceType 2 uses 0 to 15 for dim values
+
       .setProps({
         minValue: 0,
-        maxValue: this.device.deviceType === 2 ? 15 : 255,
+        maxValue: this.device.deviceConfig.maxBrightness ?? 255,
       });
   }
 
   private async getBrightness(): Promise<number> {
     try {
       const status = await this.device.getDimLevel();
+      if (status == null) {
+        this.logger.debug('status for ' + this.deviceName + ' ' + await this.device.getStatus());
+      }
       this.logger.debug(`Current brightness for ${this.deviceName}: ${status}`);
       return status;
     } catch (e) {

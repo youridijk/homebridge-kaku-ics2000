@@ -1,10 +1,10 @@
 import LightBulb from './LightBulb';
-import ColorTempDevice from '../kaku/ColorTempDevice';
+import ColorTemperatureDevice from '../kaku/devices/ColorTemperatureDevice';
 import KAKUPlatform from '../KAKUPlatform';
 import {CharacteristicValue, HAPStatus, PlatformAccessory} from 'homebridge';
 
-export default class ColorTempLightBulb extends LightBulb {
-  public readonly device: ColorTempDevice;
+export default class ColorTemperatureLightBulb extends LightBulb {
+  public readonly device: ColorTemperatureDevice;
 
   constructor(
     platform: KAKUPlatform,
@@ -21,7 +21,7 @@ export default class ColorTempLightBulb extends LightBulb {
       // The color temp is a value from 0 to 600
       .setProps({
         minValue: 0,
-        maxValue: 600,
+        maxValue: this.device.deviceConfig.maxColorTemperature ?? 600,
       });
   }
 

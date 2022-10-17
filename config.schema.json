@@ -33,9 +33,14 @@
         "type": "string",
         "required": false
       },
-      "dimmableOverrides": {
-        "title": "A list of entityIDs of devices that must be treated as a dimmable device, whether it is or isn't.",
-        "type": "array",
+      "deviceConfigOverrides": {
+        "title": "An object used to override the content of DeviceConfigs.ts.",
+        "type": "object",
+        "required": false
+      },
+      "discoverMessage": {
+        "title": "The HEX message you want to use to discover your local ICS-2000. If not provided, the message hardcoded in the code is used",
+        "type": "string",
         "required": false
       }
     }

@@ -5,9 +5,10 @@ import {PLATFORM_NAME, PLUGIN_NAME, RELOAD_SWITCH_NAME} from './settings';
 import DimmableLightBulb from './devices/DimmableLightBulb';
 import ReloadSwitch from './ReloadSwitch';
 import schedule from 'node-schedule';
-import DimDevice from './kaku/DimDevice';
-import ColorTempDevice from './kaku/ColorTempDevice';
-import ColorTempLightBulb from './devices/ColorTempLightBulb';
+import DimDevice from './kaku/devices/DimDevice';
+import ColorTemperatureDevice from './kaku/devices/ColorTemperatureDevice';
+import ColorTemperatureLightBulb from './devices/ColorTemperatureLightBulb';
+import SwitchDevice from './kaku/devices/SwitchDevice';
 
 export default class KAKUPlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
@@ -15,6 +16,7 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
   private readonly cachedAccessories: PlatformAccessory[] = [];
   public readonly hub: Hub;
   private registeredDeviceIds: number[] = [];
+  public readonly discoverMessage?: string;
 
   constructor(
     public readonly logger: Logger,
@@ -24,30 +26,33 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
     this.logger.debug('Finished initializing platform:', this.config.name);
     const {email, password} = config;
 
-    if (!email || !password) {
-      throw new Error('Email and/ or password missing');
-    }
-
     const deviceBlacklist: number[] = config.deviceBlacklist ?? [];
 
     if (deviceBlacklist.length > 0) {
-      this.logger.debug(`Blacklist contains ${deviceBlacklist.length} devices: ${deviceBlacklist}`);
+      this.logger.info(`Blacklist contains ${deviceBlacklist.length} devices: ${deviceBlacklist}`);
     }
 
     const {localBackupAddress} = config;
 
     if (localBackupAddress) {
-      this.logger.debug(`Using ${localBackupAddress!} as backup ip`);
+      this.logger.info(`Using ${localBackupAddress!} as backup ip`);
     }
 
-    const dimmableOverrides = config.dimmableOverrides ?? [];
+    const deviceConfigsOverrides = config.deviceConfigsOverrides ?? {};
+    const keyCount = Object.keys(deviceConfigsOverrides).length;
 
-    if (dimmableOverrides.length > 0) {
-      this.logger.debug(`Dimmable overrides contains ${dimmableOverrides.length} devices: ${dimmableOverrides}`);
+    if (keyCount > 0) {
+      this.logger.info(`Device config overrides contains ${keyCount} device types`);
+    }
+
+    this.discoverMessage = config.discoverMessage;
+
+    if(this.discoverMessage){
+      this.logger.info(`Using custom discover message: ${this.discoverMessage!}`);
     }
 
     // Create a new Hub that's used in all accessories
-    this.hub = new Hub(email, password, deviceBlacklist, localBackupAddress, dimmableOverrides);
+    this.hub = new Hub(email, password, deviceBlacklist, localBackupAddress, deviceConfigsOverrides);
 
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
     // Dynamic Platform plugins should only register new accessories after this event was fired,
@@ -61,7 +66,7 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
       schedule.scheduleJob('0 0 * * *', async () => {
         this.logger.info('Pulling AES-key from server and searching for ics2000 as scheduled');
         // this.setup();
-        const {isBackupAddress} = await this.hub.discoverHubLocal(10_000);
+        const {isBackupAddress} = await this.hub.discoverHubLocal(10_000, this.discoverMessage);
         if (isBackupAddress) {
           this.searchTimeOutWarning();
         }
@@ -96,30 +101,34 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
   private createDevice(accessory: PlatformAccessory) {
     const {device} = accessory.context;
 
-    if(device instanceof ColorTempDevice){
-      new ColorTempLightBulb(this, accessory);
-    }else if(device instanceof DimDevice){
+    if (device instanceof ColorTemperatureDevice) {
+      new ColorTemperatureLightBulb(this, accessory);
+    } else if (device instanceof DimDevice) {
       new DimmableLightBulb(this, accessory);
-    }else {
+    } else if (device instanceof SwitchDevice) {
       new LightBulb(this, accessory);
+    } else {
+      throw new Error(`Device hasn't any controls: ${device.entityId} ${device.name} ${device.deviceType}`);
     }
   }
 
   private async discoverDevices() {
     // Search hub and pull devices from the server
     this.logger.info('Searching hub');
-    const {address: hubIp, isBackupAddress} = await this.hub.discoverHubLocal(10_000);
+    const {address: hubIp, isBackupAddress} = await this.hub.discoverHubLocal(10_000, this.discoverMessage);
 
-    if(isBackupAddress){
+    if (isBackupAddress) {
       this.searchTimeOutWarning();
     }
 
     this.logger.info(`Found hub: ${hubIp}`);
     this.logger.info('Pulling devices from server');
     const foundDevices = await this.hub.pullDevices();
+    const filteredDevices = foundDevices.filter(d => !d.disabled);
+
     this.logger.info(`Found ${foundDevices.length} devices`);
 
-    for (const device of foundDevices) {
+    for (const device of filteredDevices) {
       const entityId = device.entityId;
       const deviceType = device.deviceType;
 
@@ -133,22 +142,26 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
       const existingAccessory = this.cachedAccessories.find(accessory => accessory.UUID === uuid);
 
       // Create the accessory
-      if (existingAccessory) {
-        existingAccessory.context.device = device;
-        this.createDevice(existingAccessory);
-        this.logger.info(`Loaded device from cache: 
+      try {
+        if (existingAccessory) {
+          existingAccessory.context.device = device;
+          this.createDevice(existingAccessory);
+          this.logger.info(`Loaded device from cache: 
         name=${device.name}, entityId=${device.entityId}, deviceType=${deviceType}`);
-      } else {
-        const deviceName = device.name;
-        const accessory = new this.api.platformAccessory(deviceName, uuid);
+        } else {
+          const deviceName = device.name;
+          const accessory = new this.api.platformAccessory(deviceName, uuid);
 
-        // store a copy of the device object in the `accessory.context`
-        accessory.context.device = device;
-        accessory.context.name = deviceName;
+          // store a copy of the device object in the `accessory.context`
+          accessory.context.device = device;
+          accessory.context.name = deviceName;
 
-        this.createDevice(accessory);
-        this.logger.info(`Loaded new device: name=${device.name}, entityId=${device.entityId}, deviceType=${deviceType}`);
-        this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+          this.createDevice(accessory);
+          this.logger.info(`Loaded new device: name=${device.name}, entityId=${device.entityId}, deviceType=${deviceType}`);
+          this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+        }
+      }catch (e){
+        this.logger.error(`${e}`);
       }
     }
   }
@@ -172,7 +185,7 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
     this.logger.info('Created reload switch');
   }
 
-  private searchTimeOutWarning(): void{
+  private searchTimeOutWarning(): void {
     this.logger.warn('Searching hub timed out! Using backup address for communication');
   }
 }
