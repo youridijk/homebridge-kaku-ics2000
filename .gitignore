@@ -124,3 +124,4 @@ device-config.json
 src/test.js
 src/platform.ts
 src/platformAccessory.ts
+.DS_Store
