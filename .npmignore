@@ -139,3 +139,5 @@ homebridge-config.json
 device-config.json
 docs/
 *.md
+*.chls
+test-date/

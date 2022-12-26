@@ -7,11 +7,12 @@ import Device from './devices/Device';
 import DimDevice from './devices/DimDevice';
 import DeviceData from './model/DeviceData';
 import axios from 'axios';
-import SmartMeterData from './model/SmartMeterData';
+import SmartMeterDataCurrent from './model/SmartMeterDataCurrent';
 import ColorTemperatureDevice from './devices/ColorTemperatureDevice';
 import DeviceConfig from './model/DeviceConfig';
 import deviceConfigs from './DeviceConfigs';
 import SwitchDevice from './devices/SwitchDevice';
+import SmartMeterData, {Precision} from './model/SmartMeterData';
 
 // Set base url for all axios requests
 axios.defaults.baseURL = 'https://trustsmartcloud2.com/ics2000_api';
@@ -50,6 +51,10 @@ export default class Hub {
     if (!email || !password) {
       throw new Error('Email and/ or password missing');
     }
+  }
+
+  public setHubMAC(mac: string) {
+    this.hubMac = mac;
   }
 
   /**
@@ -437,7 +442,7 @@ export default class Hub {
   /**
    * Get the current data from the P1 module (aka smart meter)
    */
-  public async getSmartMeterData(): Promise<SmartMeterData> {
+  public async getSmartMeterData(): Promise<SmartMeterDataCurrent> {
     if (this.p1EntityId == null) {
       this.p1EntityId = await this.getP1EntityID();
     }
@@ -471,6 +476,99 @@ export default class Hub {
       gas: functions[6],
       rawDataArray: functions,
     };
+  }
+
+  protected formatDate(date: Date): string {
+    date.setMilliseconds(0);
+    date.setSeconds(0);
+    date.setMinutes(0);
+    const dateString = date.toLocaleDateString('en-CA');
+    const timeString = date.toLocaleTimeString('nl-NL');
+    return dateString + ' ' + timeString;
+  }
+
+  public async getP1Data(
+    startDate: Date,
+    endDate: Date,
+    precision: Precision,
+    differential = true,
+    interpolate = true,
+  ): Promise<number[][]> {
+    const params = new URLSearchParams({
+      'action': 'aggregated_reports',
+      'email': this.email,
+      'password_hash': this.password,
+      'mac': this.hubMac!,
+      'differential': String(differential),
+      'interpolate': String(interpolate),
+      'start_date': this.formatDate(startDate),
+      'end_date': this.formatDate(endDate),
+      precision,
+    });
+
+    const response = await axios.post('/p1.php', params.toString()).catch(error => {
+      if (error.response.status === 400 && error.response.data.error) {
+        throw new Error(error.response.data.error);
+      } else {
+        throw new Error(error.response.data);
+      }
+    });
+
+    const responseDate = response.data;
+
+    if (!Array.isArray(responseDate)) {
+      throw new Error('Response date is not an array');
+    }
+
+    return response.data;
+  }
+
+  public static convertToSmartMeterData(array: number[], date: Date, noTime = false): SmartMeterData{
+    return {
+      date: (noTime ? date.toLocaleDateString('en-US') : date),
+      // date,
+      time: date.getTime(),
+      powerConsumedLowTariff: array[0],
+      powerConsumed: array[1],
+      powerProducedLowTariff: array[2],
+      powerProduced: array[3],
+      gas: array[4],
+      water: array[5],
+    };
+  }
+
+  public async getSmartMeterDataByDay(startDate: Date, endDate: Date) {
+    const rawData = await this.getP1Data(startDate, endDate, 'day');
+
+    const returnData: SmartMeterData[] = [];
+
+    for (const dayDataArray of rawData) {
+      startDate.setDate(startDate.getDate() + 1);
+
+      returnData.push(Hub.convertToSmartMeterData(dayDataArray, startDate, true));
+    }
+
+    return returnData;
+  }
+
+  public async getSmartMeterDataByDayWithNumberOfDays(endDate: Date, numberOfDays: number) {
+    const startDate = new Date(endDate.getTime());
+    startDate.setDate(startDate.getDate() - numberOfDays);
+    startDate.setHours(23);
+    endDate.setHours(23);
+    return this.getSmartMeterDataByDay(startDate, endDate);
+  }
+
+  public async getSmartMeterDataByWeek(weekEndDate: Date) {
+    return this.getSmartMeterDataByDayWithNumberOfDays(weekEndDate, 7);
+  }
+
+  public async getSmartMeterDataByDayMonth(monthEndDate: Date) {
+    const startDate = new Date(monthEndDate.getTime());
+    startDate.setMonth(startDate.getMonth() - 1);
+    startDate.setHours(23);
+    monthEndDate.setHours(23);
+    return this.getSmartMeterDataByDay(startDate, monthEndDate);
   }
 
   /**
