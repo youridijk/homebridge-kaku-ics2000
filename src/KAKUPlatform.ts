@@ -1,14 +1,11 @@
 import {API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic} from 'homebridge';
-import Hub from './kaku/Hub';
+import {Hub, SwitchDevice, DimDevice, ColorTemperatureDevice} from 'ics-2000';
 import LightBulb from './devices/LightBulb';
 import {PLATFORM_NAME, PLUGIN_NAME, RELOAD_SWITCH_NAME} from './settings';
 import DimmableLightBulb from './devices/DimmableLightBulb';
 import ReloadSwitch from './ReloadSwitch';
 import schedule from 'node-schedule';
-import DimDevice from './kaku/devices/DimDevice';
-import ColorTemperatureDevice from './kaku/devices/ColorTemperatureDevice';
 import ColorTemperatureLightBulb from './devices/ColorTemperatureLightBulb';
-import SwitchDevice from './kaku/devices/SwitchDevice';
 
 export default class KAKUPlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
