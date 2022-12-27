@@ -45,10 +45,10 @@ An example config.json with those keys:
 | Done?  | Feature                                                                                                                 |
 |--------|-------------------------------------------------------------------------------------------------------------------------|
 | ✅     | Proper per device hardcoded config like is dimmable, has color temp, dim function, on/off function, color temp function |
-| ✅     | User configurable config per device (same config as point above)                                                         |
-| ❌     | Debug script in JS. CLI script to control KAKU devices, get status and decrypt messages                                 |
-| ❌     | REST server to control KAKU devices, get status and decrypt messages                                                    |
-| 
+| ✅     | User configurable config per device (same config as point above)                                                        |
+| ❌     | CLI script to control KAKU devices, get status and decrypt messages and start REST server                               |
+| ✅     | REST server to control KAKU devices, get status and decrypt messages                                                    | 
+| ✅     | Split KAKU API code into seperate NPM package                                                                           
 
 ## Contributing
 
