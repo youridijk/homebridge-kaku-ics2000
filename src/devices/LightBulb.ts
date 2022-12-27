@@ -1,7 +1,6 @@
 import {CharacteristicValue, HAPStatus, Logger, PlatformAccessory, Service} from 'homebridge';
-import Hub from '../kaku/Hub';
+import {Hub, SwitchDevice} from 'ics-2000';
 import KAKUPlatform from '../KAKUPlatform';
-import SwitchDevice from '../kaku/devices/SwitchDevice';
 
 /**
  * This class is a simple KAKU or other zigbee lightbulb / switch connected to your ics 2000. This lightbulb can only turn of and on
