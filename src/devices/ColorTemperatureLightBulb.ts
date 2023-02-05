@@ -1,5 +1,5 @@
 import LightBulb from './LightBulb';
-import ColorTemperatureDevice from '../kaku/devices/ColorTemperatureDevice';
+import {ColorTemperatureDevice} from 'ics-2000';
 import KAKUPlatform from '../KAKUPlatform';
 import {CharacteristicValue, HAPStatus, PlatformAccessory} from 'homebridge';
 
