@@ -33,6 +33,11 @@
         "type": "string",
         "required": false
       },
+      "hideReloadSwitch": {
+        "title": "Hide the reload switch",
+        "type": "boolean",
+        "required": false
+      },
       "deviceConfigOverrides": {
         "title": "An object used to override the content of DeviceConfigs.ts.",
         "type": "object",

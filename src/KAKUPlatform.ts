@@ -57,7 +57,12 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
     // to start discovery of new accessories.
     this.api.on('didFinishLaunching', async () => {
       await this.setup();
-      this.createReloadSwitch();
+
+      if (!this.config.hideReloadSwitch) {
+        this.createReloadSwitch();
+      } else {
+        this.logger.info('Hiding reloading switch as specified in config');
+      }
       // Rerun the setup every day so that the devices listed in HomeKit are up-to-date, the AES key for the command is up-to-date and
       // The local ip-address of your ics-2000 is up-to-date
       schedule.scheduleJob('0 0 * * *', async () => {
