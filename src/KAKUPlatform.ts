@@ -1,5 +1,5 @@
 import {API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic} from 'homebridge';
-import {Hub, SwitchDevice, DimDevice, ColorTemperatureDevice, Scene} from 'ics-2000';
+import {Hub, SwitchDevice, DimDevice, ColorTemperatureDevice, Scene, Entity} from 'ics-2000';
 import LightBulb from './devices/LightBulb';
 import {PLATFORM_NAME, PLUGIN_NAME, RELOAD_SWITCH_NAME} from './settings';
 import DimmableLightBulb from './devices/DimmableLightBulb';
@@ -24,10 +24,10 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
     this.logger.debug('Finished initializing platform:', this.config.name);
     const {email, password} = config;
 
-    const deviceBlacklist: number[] = config.deviceBlacklist ?? [];
+    const entityBlacklist: number[] = config.entityBlacklist ?? [];
 
-    if (deviceBlacklist.length > 0) {
-      this.logger.info(`Blacklist contains ${deviceBlacklist.length} devices: ${deviceBlacklist}`);
+    if (entityBlacklist.length > 0) {
+      this.logger.info(`Blacklist contains ${entityBlacklist.length} entities: ${entityBlacklist}`);
     }
 
     const {localBackupAddress} = config;
@@ -50,7 +50,7 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
     }
 
     // Create a new Hub that's used in all accessories
-    this.hub = new Hub(email, password, deviceBlacklist, localBackupAddress, deviceConfigsOverrides);
+    this.hub = new Hub(email, password, entityBlacklist, localBackupAddress, deviceConfigsOverrides);
 
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
     // Dynamic Platform plugins should only register new accessories after this event was fired,
@@ -130,9 +130,12 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
     this.logger.info('Pulling devices from server');
     const rawEntitiesData = await this.hub.getRawDevicesData(true, false);
     const foundDevices = await this.hub.getDevices(rawEntitiesData);
-    const foundScene = await this.hub.getScenes(rawEntitiesData);
-    const filteredDevices = foundDevices.filter(d => !d.disabled);
-    const allEntities = [...filteredDevices, ...foundScene];
+    let allEntities: Entity[] = foundDevices.filter(d => !d.disabled);
+
+    if (this.config.showScenes) {
+      const scenes = await this.hub.getScenes(rawEntitiesData);
+      allEntities = [...allEntities, ...scenes];
+    }
 
     this.logger.info(`Found ${foundDevices.length} devices`);
 
@@ -154,8 +157,7 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
         if (existingAccessory) {
           existingAccessory.context.device = entity;
           this.createDevice(existingAccessory);
-          this.logger.info(`Loaded entity from cache: 
-        name=${entity.name}, entityId=${entity.entityId}, deviceType=${deviceType}`);
+          this.logger.info(`Loaded entity from cache: name=${entity.name}, entityId=${entity.entityId}, deviceType=${deviceType}`);
         } else {
           const deviceName = entity.name;
           const accessory = new this.api.platformAccessory(deviceName, uuid);

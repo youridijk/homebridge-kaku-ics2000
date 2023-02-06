@@ -23,8 +23,8 @@
         "required": true,
         "default": ""
       },
-      "deviceBlacklist": {
-        "title": "A list of device ids you do not want to appear in HomeKit",
+      "entityBlacklist": {
+        "title": "A list of entity ids (ids of devices and scenes) you do not want to appear in HomeKit",
         "type": "array",
         "required": false
       },
@@ -36,7 +36,14 @@
       "hideReloadSwitch": {
         "title": "Hide the reload switch",
         "type": "boolean",
-        "required": false
+        "required": false,
+        "default": false
+      },
+      "showScenes": {
+        "title": "Set to true if you wan to show scenes as devices. If false, scenes are not shown",
+        "type": "boolean",
+        "required": false,
+        "default": false
       },
       "deviceConfigOverrides": {
         "title": "An object used to override the content of DeviceConfigs.ts.",
