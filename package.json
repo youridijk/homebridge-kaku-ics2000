@@ -1,7 +1,7 @@
 {
   "displayName": "Homebridge KAKU ICS-2000",
   "name": "homebridge-kaku-ics2000",
-  "version": "1.2.1",
+  "version": "1.3.0-beta.1",
   "description": "A plugin that adds support for Klik Aan Klik Uit accessories connected to the ICS-2000 to HomeKit",
   "license": "Apache-2.0",
   "repository": {
