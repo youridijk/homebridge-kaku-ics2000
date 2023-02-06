@@ -1,5 +1,5 @@
 import {API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic} from 'homebridge';
-import {Hub, SwitchDevice, DimDevice, ColorTemperatureDevice} from 'ics-2000';
+import {Hub, SwitchDevice, DimDevice, ColorTemperatureDevice, Scene} from 'ics-2000';
 import LightBulb from './devices/LightBulb';
 import {PLATFORM_NAME, PLUGIN_NAME, RELOAD_SWITCH_NAME} from './settings';
 import DimmableLightBulb from './devices/DimmableLightBulb';
@@ -110,7 +110,7 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
       new DimmableLightBulb(this, accessory);
     } else if (device instanceof SwitchDevice) {
       new LightBulb(this, accessory);
-    } else if (device instanceof SceneDevice) {
+    } else if (device instanceof Scene) {
       new SceneDevice(this, accessory);
     } else {
       throw new Error(`Device hasn't any controls: ${device.entityId} ${device.name} ${device.deviceType}`);
