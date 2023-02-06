@@ -10,9 +10,13 @@ export default class SceneDevice extends OneFunctionSwitch {
     platform: KAKUPlatform,
     accessory: PlatformAccessory,
   ) {
-    const scene = accessory.context as Scene;
+    const scene = accessory.context.device as Scene;
     super(platform, accessory, scene.name);
     this.scene = scene;
+
+    this.accessory.getService(this.platform.Service.AccessoryInformation)!
+      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Klik Aan Klik Uit')
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, this.scene.entityId.toString());
   }
 
   /**
