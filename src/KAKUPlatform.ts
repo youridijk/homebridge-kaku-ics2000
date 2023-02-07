@@ -125,7 +125,7 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
 
     this.logger.info(`Found hub: ${hubIp}`);
     this.logger.info('Pulling devices from server');
-    const foundDevices = await this.hub.pullDevices();
+    const foundDevices = await this.hub.getDevices();
     const filteredDevices = foundDevices.filter(d => !d.disabled);
 
     this.logger.info(`Found ${foundDevices.length} devices`);
