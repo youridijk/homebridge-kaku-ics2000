@@ -4,7 +4,7 @@ import {PlatformAccessory, Service} from 'homebridge';
 export default abstract class OneFunctionSwitch {
   protected readonly service: Service;
 
-  constructor(
+  protected constructor(
     protected readonly platform: KAKUPlatform,
     protected readonly accessory: PlatformAccessory,
     public readonly name: string,
@@ -27,6 +27,6 @@ export default abstract class OneFunctionSwitch {
    * @private
    */
   protected async onSet(){
-    this.platform.logger.info(`${this.name} switch pressed`);
+    this.platform.logger.debug(`Switch with name '${this.name}' pressed`);
   }
 }

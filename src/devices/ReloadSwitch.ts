@@ -7,7 +7,7 @@ export default class ReloadSwitch extends OneFunctionSwitch {
     platform: KAKUPlatform,
     accessory: PlatformAccessory,
   ) {
-    super(platform, accessory, 'reload switch');
+    super(platform, accessory, 'Reload switch');
   }
 
   /**
@@ -15,6 +15,10 @@ export default class ReloadSwitch extends OneFunctionSwitch {
    */
   protected async onSet() {
     await super.onSet();
-    await this.platform.setup();
+    try {
+      await this.platform.setup();
+    } catch (e) {
+      this.platform.logger.error(`Error running setup after reload switch toggled: ${e}`);
+    }
   }
 }

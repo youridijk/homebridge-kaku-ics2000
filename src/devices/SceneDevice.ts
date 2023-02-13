@@ -20,10 +20,14 @@ export default class SceneDevice extends OneFunctionSwitch {
   }
 
   /**
-   * Rerun the setup on the platform
+   * Run this scene
    */
   protected async onSet() {
     await super.onSet();
-    await this.scene.run();
+    try {
+      await this.scene.run();
+    } catch (e) {
+      this.platform.logger.error(`Error running scene with name ${this.name}: ${e}`);
+    }
   }
 }
