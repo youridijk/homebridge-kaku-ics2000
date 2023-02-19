@@ -24,7 +24,7 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
     this.logger.debug('Finished initializing platform:', this.config.name);
     const {email, password} = config;
 
-    const entityBlacklist: number[] = config.entityBlacklist ?? [];
+    const entityBlacklist: number[] = config.entityBlacklist ?? config.deviceBlacklist ?? [];
 
     if (entityBlacklist.length > 0) {
       this.logger.info(`Blacklist contains ${entityBlacklist.length} entities: ${entityBlacklist}`);
