@@ -1,11 +1,12 @@
 import {API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic} from 'homebridge';
-import {Hub, SwitchDevice, DimDevice, ColorTemperatureDevice} from 'ics-2000';
+import {Hub, SwitchDevice, DimDevice, ColorTemperatureDevice, Scene, Entity} from 'ics-2000';
 import LightBulb from './devices/LightBulb';
 import {PLATFORM_NAME, PLUGIN_NAME, RELOAD_SWITCH_NAME} from './settings';
 import DimmableLightBulb from './devices/DimmableLightBulb';
-import ReloadSwitch from './ReloadSwitch';
+import ReloadSwitch from './devices/ReloadSwitch';
 import schedule from 'node-schedule';
 import ColorTemperatureLightBulb from './devices/ColorTemperatureLightBulb';
+import SceneDevice from './devices/SceneDevice';
 
 export default class KAKUPlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
@@ -23,10 +24,10 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
     this.logger.debug('Finished initializing platform:', this.config.name);
     const {email, password} = config;
 
-    const deviceBlacklist: number[] = config.deviceBlacklist ?? [];
+    const entityBlacklist: number[] = config.entityBlacklist ?? config.deviceBlacklist ?? [];
 
-    if (deviceBlacklist.length > 0) {
-      this.logger.info(`Blacklist contains ${deviceBlacklist.length} devices: ${deviceBlacklist}`);
+    if (entityBlacklist.length > 0) {
+      this.logger.info(`Blacklist contains ${entityBlacklist.length} entities: ${entityBlacklist}`);
     }
 
     const {localBackupAddress} = config;
@@ -49,7 +50,7 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
     }
 
     // Create a new Hub that's used in all accessories
-    this.hub = new Hub(email, password, deviceBlacklist, localBackupAddress, deviceConfigsOverrides);
+    this.hub = new Hub(email, password, entityBlacklist, localBackupAddress, deviceConfigsOverrides);
 
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
     // Dynamic Platform plugins should only register new accessories after this event was fired,
@@ -109,6 +110,8 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
       new DimmableLightBulb(this, accessory);
     } else if (device instanceof SwitchDevice) {
       new LightBulb(this, accessory);
+    } else if (device instanceof Scene) {
+      new SceneDevice(this, accessory);
     } else {
       throw new Error(`Device hasn't any controls: ${device.entityId} ${device.name} ${device.deviceType}`);
     }
@@ -125,14 +128,20 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
 
     this.logger.info(`Found hub: ${hubIp}`);
     this.logger.info('Pulling devices from server');
-    const foundDevices = await this.hub.pullDevices();
-    const filteredDevices = foundDevices.filter(d => !d.disabled);
+    const rawEntitiesData = await this.hub.getRawDevicesData(true, false);
+    const foundDevices = await this.hub.getDevices(rawEntitiesData);
+    let allEntities: Entity[] = foundDevices.filter(d => !d.disabled);
+
+    if (this.config.showScenes) {
+      const scenes = await this.hub.getScenes(rawEntitiesData);
+      allEntities = [...allEntities, ...scenes];
+    }
 
     this.logger.info(`Found ${foundDevices.length} devices`);
 
-    for (const device of filteredDevices) {
-      const entityId = device.entityId;
-      const deviceType = device.deviceType;
+    for (const entity of allEntities) {
+      const entityId = entity.entityId;
+      const deviceType = entity.deviceType;
 
       if (this.registeredDeviceIds.includes(entityId)) {
         continue;
@@ -146,20 +155,19 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
       // Create the accessory
       try {
         if (existingAccessory) {
-          existingAccessory.context.device = device;
+          existingAccessory.context.device = entity;
           this.createDevice(existingAccessory);
-          this.logger.info(`Loaded device from cache: 
-        name=${device.name}, entityId=${device.entityId}, deviceType=${deviceType}`);
+          this.logger.info(`Loaded entity from cache: name=${entity.name}, entityId=${entity.entityId}, deviceType=${deviceType}`);
         } else {
-          const deviceName = device.name;
+          const deviceName = entity.name;
           const accessory = new this.api.platformAccessory(deviceName, uuid);
 
           // store a copy of the device object in the `accessory.context`
-          accessory.context.device = device;
+          accessory.context.device = entity;
           accessory.context.name = deviceName;
 
           this.createDevice(accessory);
-          this.logger.info(`Loaded new device: name=${device.name}, entityId=${device.entityId}, deviceType=${deviceType}`);
+          this.logger.info(`Loaded new device: name=${entity.name}, entityId=${entity.entityId}, deviceType=${deviceType}`);
           this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
         }
       }catch (e){
