@@ -39,7 +39,7 @@
     "typescript": "^4.4.4"
   },
   "dependencies": {
-    "ics-2000": "1.2.0-beta.5",
+    "ics-2000": "1.2.0",
     "node-schedule": "^2.1.0"
   }
 }
