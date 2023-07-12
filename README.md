@@ -21,7 +21,7 @@ In addition, there are a few optional options:
 - `deviceBlacklist` - A list of entityIDs of devices you don't want to show up in HomeKit.
 - `localBackupAddress` - A backup IP-address that will be used if the IP-address of your ICS-2000 can't be found
   automatically.
-- `deviceConfigOverrides` - An object containing override or additional configs. The key is the device type, the value an object according to the [DeviceConfig interface](src/kaku/model/DeviceConfig.ts).
+- `deviceConfigOverrides` - An object containing override or additional configs. The key is the device type, the value an object according to the [DeviceConfig interface](https://github.com/youridijk/ICS-2000-NodeJS/blob/main/src/kaku/model/DeviceConfig.ts).
 
 An example config.json with those keys:
 
@@ -36,19 +36,25 @@ An example config.json with those keys:
     21053004,
     20108785
   ],
-  "localBackupAddress": "192.168.1.5"
+  "localBackupAddress": "192.168.1.5",
+  "deviceConfigOverrides": {
+    "6": {
+      "modelName": "ACDB 7000A doorbell",
+      "onOffFunction": 0
+    }
+  }
 }
 ```
 
 ## TODO
 
-| Done?  | Feature                                                                                                                 |
-|--------|-------------------------------------------------------------------------------------------------------------------------|
+| Done? | Feature                                                                                                                 |
+|-------|-------------------------------------------------------------------------------------------------------------------------|
 | ✅     | Proper per device hardcoded config like is dimmable, has color temp, dim function, on/off function, color temp function |
 | ✅     | User configurable config per device (same config as point above)                                                        |
 | ❌     | CLI script to control KAKU devices, get status and decrypt messages and start REST server                               |
 | ✅     | REST server to control KAKU devices, get status and decrypt messages                                                    | 
-| ✅     | Split KAKU API code into seperate NPM package                                                                           
+| ✅     | Split KAKU API code into separate NPM package                                                                           |
 
 ## Contributing
 
@@ -57,8 +63,8 @@ put your device types with a short description of the device (e.g. Zigbee dimmer
 to a product page of the product, in a comment
 at [issue #12](https://github.com/youridijk/homebridge-kaku-ics2000/issues/12).
 If you have devices that don't respond to the commands of this plugin, 
-try to identify the functions it uses and open up a PR to add it to [DeviceConfigs.ts](src/kaku/DeviceConfigs.ts)
-or open up an issue.
+try to identify the functions it uses and open up a PR to add it to 
+[DeviceConfigs.ts](https://github.com/youridijk/ICS-2000-NodeJS/blob/main/src/kaku/model/DeviceConfig.ts) or open up an issue.
 
 ## ICS2000-Python
 
