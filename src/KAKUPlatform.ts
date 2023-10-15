@@ -1,5 +1,5 @@
-import {API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic} from 'homebridge';
-import {Hub, SwitchDevice, DimDevice, ColorTemperatureDevice, Scene, Entity} from 'ics-2000';
+import {API, DynamicPlatformPlugin, Logger, PlatformAccessory, Service, Characteristic} from 'homebridge';
+import {Hub, SwitchDevice, DimDevice, ColorTemperatureDevice, Scene, Entity, RESTServer} from 'ics-2000';
 import LightBulb from './devices/LightBulb';
 import {PLATFORM_NAME, PLUGIN_NAME, RELOAD_SWITCH_NAME} from './settings';
 import DimmableLightBulb from './devices/DimmableLightBulb';
@@ -7,6 +7,7 @@ import ReloadSwitch from './devices/ReloadSwitch';
 import schedule from 'node-schedule';
 import ColorTemperatureLightBulb from './devices/ColorTemperatureLightBulb';
 import SceneDevice from './devices/SceneDevice';
+import {Config} from './types';
 
 export default class KAKUPlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
@@ -15,16 +16,21 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
   public readonly hub: Hub;
   private registeredDeviceIds: number[] = [];
   public readonly discoverMessage?: string;
+  private readonly RESTServer?: RESTServer;
 
   constructor(
     public readonly logger: Logger,
-    public readonly config: PlatformConfig,
+    public readonly config: Config,
     public readonly api: API,
   ) {
     this.logger.debug('Finished initializing platform:', this.config.name);
     const {email, password} = config;
 
-    const entityBlacklist: number[] = config.entityBlacklist ?? config.deviceBlacklist ?? [];
+    if (!(email && password)) {
+      throw new Error('E-mail and password are required');
+    }
+
+    const entityBlacklist = config.entityBlacklist ?? config.deviceBlacklist ?? [];
 
     if (entityBlacklist.length > 0) {
       this.logger.info(`Blacklist contains ${entityBlacklist.length} entities: ${entityBlacklist}`);
@@ -45,12 +51,16 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
 
     this.discoverMessage = config.discoverMessage;
 
-    if(this.discoverMessage){
+    if (this.discoverMessage) {
       this.logger.info(`Using custom discover message: ${this.discoverMessage!}`);
     }
 
     // Create a new Hub that's used in all accessories
     this.hub = new Hub(email, password, entityBlacklist, localBackupAddress, deviceConfigsOverrides);
+
+    if (config.startRESTServer) {
+      this.RESTServer = new RESTServer(true, this.hub);
+    }
 
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
     // Dynamic Platform plugins should only register new accessories after this event was fired,
@@ -64,6 +74,14 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
       } else {
         this.logger.info('Hiding reloading switch as specified in config');
       }
+
+      if (config.startRESTServer) {
+        const RESTServerPort = config.RESTServerPort ?? 9100;
+        this.RESTServer?.listen(RESTServerPort)
+          .then(() => this.logger.info('REST server started on port ' + RESTServerPort))
+          .catch((error) => this.logger.error('Error starting REST server: ' + error));
+      }
+
       // Rerun the setup every day so that the devices listed in HomeKit are up-to-date, the AES key for the command is up-to-date and
       // The local ip-address of your ics-2000 is up-to-date
       schedule.scheduleJob('0 0 * * *', async () => {
@@ -170,7 +188,7 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
           this.logger.info(`Loaded new device: name=${entity.name}, entityId=${entity.entityId}, deviceType=${deviceType}`);
           this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
         }
-      }catch (e){
+      } catch (e) {
         this.logger.error(`${e}`);
       }
     }
