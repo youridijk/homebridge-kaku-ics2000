@@ -40,6 +40,6 @@
   },
   "dependencies": {
     "ics-2000": "^1.2.1",
-    "node-schedule": "^2.1.0"
+    "node-schedule": "^2.1.1"
   }
 }
