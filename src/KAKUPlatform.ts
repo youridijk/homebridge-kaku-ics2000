@@ -1,4 +1,4 @@
-import {API, DynamicPlatformPlugin, Logger, PlatformAccessory, Service, Characteristic} from 'homebridge';
+import type {API, DynamicPlatformPlugin, Logger, PlatformAccessory, Service, Characteristic} from 'homebridge';
 import {Hub, SwitchDevice, DimDevice, ColorTemperatureDevice, Scene, Entity, RESTServer} from 'ics-2000';
 import LightBulb from './devices/LightBulb';
 import {PLATFORM_NAME, PLUGIN_NAME, RELOAD_SWITCH_NAME} from './settings';
@@ -7,11 +7,11 @@ import ReloadSwitch from './devices/ReloadSwitch';
 import schedule from 'node-schedule';
 import ColorTemperatureLightBulb from './devices/ColorTemperatureLightBulb';
 import SceneDevice from './devices/SceneDevice';
-import {Config} from './types';
+import type {Config} from './types';
 
 export default class KAKUPlatform implements DynamicPlatformPlugin {
-  public readonly Service: typeof Service = this.api.hap.Service;
-  public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
+  public readonly Service: typeof Service;
+  public readonly Characteristic: typeof Characteristic;
   private readonly cachedAccessories: PlatformAccessory[] = [];
   public readonly hub: Hub;
   private registeredDeviceIds: number[] = [];
@@ -23,6 +23,8 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
     public readonly config: Config,
     public readonly api: API,
   ) {
+    this.Service = api.hap.Service;
+    this.Characteristic = api.hap.Characteristic;
     this.logger.debug('Finished initializing platform:', this.config.name);
     const {email, password} = config;
 

@@ -1,5 +1,5 @@
-import {PlatformConfig} from 'homebridge';
-import DeviceConfig from 'ics-2000/dist/kaku/model/DeviceConfig';
+import type {PlatformConfig} from 'homebridge';
+import type {DeviceConfig} from 'ics-2000';
 
 export interface Config extends PlatformConfig {
   email?: string;

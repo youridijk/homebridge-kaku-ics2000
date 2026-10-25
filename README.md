@@ -5,6 +5,13 @@ directly to the ICS-2000 in your local network, it still needs your KAKU credent
 device is stored on your KAKU account. In addition, the credentials are used to get the encryption key which encrypts
 every message send to the ICS-2000 and decrypts the current state data from the cloud.
 
+## Homebridge compatibility
+
+Use plugin version **1.x.x** for **Homebridge 1**. Plugin versions **2.0.0 and higher** are designed for **Homebridge 2**
+and may also work with Homebridge 1, but compatibility is not guaranteed.
+
+## Configuration
+
 An example config.json with all required keys:
 
 ```json

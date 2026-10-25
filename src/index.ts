@@ -1,4 +1,4 @@
-import {API} from 'homebridge';
+import type {API} from 'homebridge';
 import {PLATFORM_NAME} from './settings';
 import KAKUPlatform from './KAKUPlatform';
 
@@ -8,4 +8,3 @@ import KAKUPlatform from './KAKUPlatform';
 export = (api: API) => {
   api.registerPlatform(PLATFORM_NAME, KAKUPlatform);
 };
-
