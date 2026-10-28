@@ -9,6 +9,9 @@ import ColorTemperatureLightBulb from './devices/ColorTemperatureLightBulb';
 import SceneDevice from './devices/SceneDevice';
 import type {Config} from './types';
 
+// The statuses of all devices are fetched with one request, so the result is shared by all accessories for this long
+const STATUS_CACHE_TIME = 2_000;
+
 export default class KAKUPlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service;
   public readonly Characteristic: typeof Characteristic;
@@ -17,6 +20,8 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
   private registeredDeviceIds: number[] = [];
   public readonly discoverMessage?: string;
   private readonly RESTServer?: RESTServer;
+  private statusesFetchedAt = 0;
+  private statusesRequest?: Promise<void>;
 
   constructor(
     public readonly logger: Logger,
@@ -89,11 +94,16 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
       schedule.scheduleJob('0 0 * * *', async () => {
         this.logger.info('Pulling AES-key from server and searching for ics2000 as scheduled');
         // this.setup();
-        const {isBackupAddress} = await this.hub.discoverHubLocal(10_000, this.discoverMessage);
-        if (isBackupAddress) {
-          this.searchTimeOutWarning();
-        }
-        await this.hub.login();
+        // Errors have to be caught here, node-schedule turns a rejected job into an unhandled rejection that crashes Homebridge
+        await this.hub.discoverHubLocal(10_000, this.discoverMessage)
+          .then(({isBackupAddress}) => {
+            if (isBackupAddress) {
+              this.searchTimeOutWarning();
+            }
+          })
+          .catch((error) => this.logger.error(`Error searching hub: ${error}`));
+        await this.hub.login()
+          .catch((error) => this.logger.error(`Error logging in: ${error}`));
       });
     });
   }
@@ -104,8 +114,43 @@ export default class KAKUPlatform implements DynamicPlatformPlugin {
       .catch(error => this.logger.error(`Error logging in: ${error}`));
     await this.discoverDevices()
       .catch((error) => this.logger.error(`Error discovering devices: ${error}`));
-    await this.hub.getAllDeviceStatuses()
+    await this.refreshDeviceStatuses()
       .catch((error) => this.logger.error(`Error fetching device statuses: ${error}`));
+  }
+
+  /**
+   * Fetch the statuses of all devices. Calls made while a request is running share that request
+   * @private
+   */
+  private refreshDeviceStatuses(): Promise<void> {
+    this.statusesRequest ??= this.hub.getAllDeviceStatuses()
+      .then(() => {
+        this.statusesFetchedAt = Date.now();
+      })
+      .finally(() => {
+        this.statusesRequest = undefined;
+      });
+
+    return this.statusesRequest;
+  }
+
+  /**
+   * Get the status of a device, used instead of hub.getDeviceStatus(). That method keeps every caller waiting after a failed request,
+   * and only refreshes the statuses when it hasn't been called for 2 seconds
+   * @param entityId The id of the device you want the status of
+   */
+  public async getDeviceStatus(entityId: number): Promise<number[]> {
+    if (Date.now() - this.statusesFetchedAt >= STATUS_CACHE_TIME) {
+      await this.refreshDeviceStatuses();
+    }
+
+    const status = this.hub.deviceStatuses.get(entityId);
+
+    if (!status) {
+      throw new Error(`No status found for entity ${entityId}`);
+    }
+
+    return status;
   }
 
   configureAccessory(accessory: PlatformAccessory): void {

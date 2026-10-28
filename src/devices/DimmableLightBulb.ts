@@ -33,7 +33,8 @@ export default class DimmableLightBulb extends LightBulb {
 
   private async getBrightness(): Promise<number> {
     try {
-      const rawDimLevel = await this.device.getDimLevel();
+      const status = await this.platform.getDeviceStatus(this.deviceId);
+      const rawDimLevel = status[this.device.deviceConfig.dimFunction!];
       const dimLevel = this.convertToRange(rawDimLevel, this.maxBrightness, 100);
       this.logger.debug(`Current brightness for ${this.deviceName}: raw=${rawDimLevel}, range=${dimLevel}`);
       return dimLevel;

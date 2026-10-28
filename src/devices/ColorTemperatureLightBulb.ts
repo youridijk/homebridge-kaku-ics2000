@@ -27,9 +27,10 @@ export default class ColorTemperatureLightBulb extends LightBulb {
 
   private async getColorTemperature(): Promise<number> {
     try {
-      const status = await this.device.getColorTemperature();
-      this.logger.debug(`Current color temperature for ${this.deviceName}: ${status}`);
-      return status;
+      const status = await this.platform.getDeviceStatus(this.deviceId);
+      const colorTemperature = status[this.device.deviceConfig.colorTemperatureFunction!];
+      this.logger.debug(`Current color temperature for ${this.deviceName}: ${colorTemperature}`);
+      return colorTemperature;
     } catch (e) {
       this.logger.error(`Error getting color temperature for ${this.deviceName}: ${e}`);
       throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
