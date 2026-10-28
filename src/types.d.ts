@@ -11,4 +11,5 @@ export interface Config extends PlatformConfig {
   deviceConfigsOverrides?: Record<number, DeviceConfig>;
   startRESTServer?: boolean;
   RESTServerPort?: number;
+  dimmerDebounceTime?: number;
 }

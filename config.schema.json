@@ -54,6 +54,13 @@
         "title": "The HEX message you want to use to discover your local ICS-2000. If not provided, the message hardcoded in the code is used",
         "type": "string",
         "required": false
+      },
+      "dimmerDebounceTime": {
+        "title": "Milliseconds to wait after the last brightness change before sending it to a dimmer. Increase this if your dimmers go into dim mode while using the slider",
+        "type": "integer",
+        "required": false,
+        "default": 500,
+        "minimum": 0
       }
     }
   }
