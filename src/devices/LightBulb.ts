@@ -62,7 +62,8 @@ export default class LightBulb {
   public async getOn() {
     try {
       // Get status for this device
-      return this.device.getOnStatus();
+      const status = await this.platform.getDeviceStatus(this.deviceId);
+      return status[this.device.deviceConfig.onOffFunction!] === 1;
     } catch (e) {
       this.platform.logger.error(`Error getting state for ${this.deviceName}: ${e}`);
       throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
