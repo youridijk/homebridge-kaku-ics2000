@@ -28,6 +28,9 @@ In addition, there are a few optional options:
 - `deviceBlacklist` - A list of entityIDs of devices you don't want to show up in HomeKit.
 - `localBackupAddress` - A backup IP-address that will be used if the IP-address of your ICS-2000 can't be found
   automatically.
+- `dimmerDebounceTime` - Milliseconds to wait after the last brightness change from HomeKit before a dimmer receives a
+  command (default `500`). Only the final brightness is sent, so dragging the brightness slider doesn't flood the dimmer.
+  Turning a dimmer on or off isn't delayed. Increase this if your dimmers still go into dim mode while using the slider.
 - `deviceConfigOverrides` - An object containing override or additional configs. The key is the device type, the value an object according to the [DeviceConfig interface](https://github.com/youridijk/ICS-2000-NodeJS/blob/main/src/kaku/model/DeviceConfig.ts).
 
 An example config.json with those keys:
